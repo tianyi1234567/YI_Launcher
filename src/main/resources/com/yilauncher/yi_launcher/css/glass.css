@@ -1,0 +1,1587 @@
+/* ============================================================
+   衣启动器 · 基础界面（玻璃质感 / 淡白主题）
+   仅负责视觉，不含任何业务逻辑。
+   ------------------------------------------------------------
+   目录（按文件中出现顺序，搜索「----------------」可跳转）：
+     窗口 → 标题栏 → 左侧导航 → 账户面板 → 通用卡片 → 主区域
+     → 右侧栏 → 系统监控卡 → 版本管理页 → 标题栏贴图
+     → 重命名 / 配色 / 下拉 → 弹窗 → 内存条 → 分组
+     → 分组次级栏位 → 关闭隔离确认 → 图标按钮 / 栏位收起
+     → 拖拽安装 → 搜索模式 → 设置页 → 下载中心进度条 → 模组管理
+   ============================================================ */
+
+.root {
+    -fx-font-family: "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", sans-serif;
+
+    -yi-ink:          #2A3040;
+    -yi-ink-2:        #545C70;
+    -yi-ink-3:        rgba(70, 80, 104, 0.62);
+    -yi-accent:       #6C7CFF;
+    -yi-accent-deep:  #4C58D6;
+    -yi-mint:         #4FD1C5;
+    -yi-hairline:     rgba(255, 255, 255, 0.72);
+    -yi-shadow:       rgba(46, 60, 92, 0.16);
+}
+
+/* ---------------- 窗口 ---------------- */
+
+.window-root {
+    -fx-background-color: transparent;
+    -fx-padding: 26px;
+}
+
+/*
+ * 窗口底板单独一层：背景渐变 + 外发光都在这层，开 cache 后只在尺寸/圆角变化时重算。
+ * 内容层（.glass）保持透明，动画时不再每帧重算 40px 高斯模糊。
+ */
+.glass-backdrop {
+    -fx-background-radius: 26px;
+    -fx-border-radius: 26px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.92);
+    -fx-background-color:
+        linear-gradient(to bottom right,
+            rgba(255, 255, 255, 0.90) 0%,
+            rgba(250, 251, 255, 0.84) 46%,
+            rgba(245, 249, 253, 0.76) 100%);
+    -fx-effect: dropshadow(gaussian, rgba(38, 52, 86, 0.22), 40, 0.04, 0, 18);
+}
+
+.glass {
+    -fx-background-color: transparent;
+}
+
+/* 玻璃内侧的柔光斑：即使桌面是纯色也能看出"磨砂玻璃"的层次 */
+.blob-violet {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 50%,
+        rgba(124, 140, 255, 0.22) 0%,
+        rgba(124, 140, 255, 0.09) 46%,
+        rgba(124, 140, 255, 0.00) 100%);
+}
+
+.blob-mint {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 50%,
+        rgba(79, 209, 197, 0.20) 0%,
+        rgba(79, 209, 197, 0.08) 48%,
+        rgba(79, 209, 197, 0.00) 100%);
+}
+
+.blob-peach {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 50%,
+        rgba(255, 186, 148, 0.18) 0%,
+        rgba(255, 186, 148, 0.07) 50%,
+        rgba(255, 186, 148, 0.00) 100%);
+}
+
+/* ---------------- 标题栏 ---------------- */
+
+.titlebar {
+    -fx-padding: 16px 14px 6px 18px;
+    -fx-alignment: center-left;
+}
+
+.logo-tile {
+    -fx-background-radius: 11px;
+    -fx-background-color: linear-gradient(to bottom right, #8A97FF 0%, #6C7CFF 46%, #4FD1C5 100%);
+    -fx-effect: dropshadow(gaussian, rgba(108, 124, 255, 0.45), 14, 0.18, 0, 5);
+}
+
+.logo-glyph {
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 1px 0;
+}
+
+.brand-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.chip-mini {
+    -fx-background-radius: 7px;
+    -fx-background-color: rgba(108, 124, 255, 0.13);
+    -fx-padding: 2px 8px;
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.win-btn {
+    -fx-background-color: transparent;
+    -fx-background-radius: 9px;
+    -fx-min-width: 34px;
+    -fx-pref-width: 34px;
+    -fx-max-width: 34px;
+    -fx-min-height: 26px;
+    -fx-pref-height: 26px;
+    -fx-max-height: 26px;
+    -fx-cursor: hand;
+    -fx-padding: 0;
+}
+
+.win-btn:hover {
+    -fx-background-color: rgba(44, 54, 80, 0.09);
+}
+
+.win-btn-close:hover {
+    -fx-background-color: #FF6B6B;
+}
+
+.win-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #5B6478;
+    -fx-stroke-width: 1.9;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.win-btn-close:hover .win-icon {
+    -fx-stroke: white;
+}
+
+/* ---------------- 左侧导航 ---------------- */
+
+/* 窄图标导航栏（参考 HMCL / BakaXL 的左侧栏） */
+.sidebar {
+    -fx-padding: 6px 10px 14px 10px;
+    -fx-spacing: 5px;
+}
+
+.side-caption {
+    -fx-font-size: 10px;
+    -fx-text-fill: rgba(80, 90, 112, 0.50);
+    -fx-padding: 10px 0 5px 10px;
+}
+
+.nav-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 16px;
+    -fx-alignment: center;
+    -fx-padding: 9px 4px 8px 4px;
+    -fx-cursor: hand;
+}
+    -fx-cursor: hand;
+}
+
+.nav-item:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.66);
+}
+
+.nav-item.active {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.16), 14, 0.05, 0, 4);
+}
+
+.nav-icon-box {
+    -fx-min-width: 22px;
+    -fx-min-height: 22px;
+    -fx-max-width: 22px;
+    -fx-max-height: 22px;
+}
+
+.nav-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #39424F;
+    -fx-stroke-width: 1.9;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.nav-item:hover .nav-icon {
+    -fx-stroke: #1E242E;
+}
+
+.nav-item.active .nav-icon {
+    -fx-stroke: -yi-accent;
+}
+
+.nav-label {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: rgba(36, 43, 58, 0.92);
+}
+
+.nav-item.active .nav-label {
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+.nav-badge {
+    -fx-background-radius: 8px;
+    -fx-background-color: linear-gradient(to bottom right, #7C8CFF, #6C7CFF);
+    -fx-text-fill: white;
+    -fx-font-size: 8.5px;
+    -fx-padding: 0 4px;
+}
+
+/* 账户卡片：长方形，左头像右文字 */
+.account-card {
+    -fx-background-radius: 14px;
+    -fx-background-color: rgba(255, 255, 255, 0.72);
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.88);
+    -fx-padding: 7px 9px 7px 7px;
+    -fx-cursor: hand;
+}
+
+.account-card:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* 皮肤头像：图已按最近邻放大成最终尺寸，这里只垫一层淡底，圆角在代码里裁 */
+.skin-avatar {
+    -fx-background-radius: 9px;
+    -fx-background-color: rgba(92, 106, 140, 0.10);
+}
+
+.account-name {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink-2;
+}
+
+/* 登录方式小胶囊：正版 / 离线 / LS站 */
+.account-kind,
+.kind-chip {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-background-radius: 999px;
+    -fx-padding: 1px 7px;
+}
+
+.kind-ms {
+    -fx-background-color: linear-gradient(to bottom right, #7D8BFF, #5F6FEF);
+}
+
+.kind-offline {
+    -fx-background-color: rgba(112, 124, 154, 0.78);
+}
+
+.kind-ms {
+    -fx-background-color: linear-gradient(to bottom right, #7D8BFF, #5F6FEF);
+}
+
+.kind-offline {
+    -fx-background-color: rgba(112, 124, 154, 0.78);
+}
+
+.kind-ls {
+    -fx-background-color: linear-gradient(to bottom right, #45D6B4, #22A98A);
+}
+
+/* ---------------- 账户面板 ---------------- */
+
+.account-current {
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-background-radius: 12px;
+    -fx-padding: 9px 11px;
+}
+
+.account-current-name {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.account-current-sub {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.account-switch {
+    -fx-background-radius: 10px;
+    -fx-padding: 4px 7px;
+}
+
+.account-switch:hover {
+    -fx-background-color: rgba(108, 124, 255, 0.13);
+}
+
+.account-switch-name {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.ms-code-box {
+    -fx-background-color: rgba(108, 124, 255, 0.10);
+    -fx-background-radius: 12px;
+    -fx-padding: 9px 11px;
+}
+
+.ms-code {
+    -fx-font-size: 21px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.account-status {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.account-status.error {
+    -fx-text-fill: #D05050;
+    -fx-font-weight: bold;
+}
+
+.account-tip {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+/* ---------------- 通用卡片 ---------------- */
+
+.card {
+    -fx-background-radius: 18px;
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-border-radius: 18px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.80);
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.08), 16, 0.02, 0, 4);
+}
+
+.card-pad {
+    -fx-padding: 14px 16px;
+}
+
+.card-title {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.card-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.section-title {
+    -fx-font-size: 19px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.section-sub {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+/* 搜索框 */
+.search-box {
+    -fx-background-radius: 999px;
+    -fx-background-color: rgba(255, 255, 255, 0.72);
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.90);
+    -fx-padding: 0 12px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+}
+
+.search-box .text-field,
+.search-field {
+    -fx-background-color: transparent;
+    -fx-font-size: 11.5px;
+    -fx-prompt-text-fill: rgba(90, 100, 122, 0.55);
+    -fx-text-fill: -yi-ink;
+    -fx-padding: 0 4px;
+}
+
+.search-field:focused {
+    -fx-background-color: transparent;
+}
+
+/* ---------------- 主区域 ---------------- */
+
+.hero {
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.85);
+    -fx-background-color:
+        linear-gradient(to bottom right,
+            rgba(140, 155, 255, 0.20) 0%,
+            rgba(163, 176, 255, 0.13) 42%,
+            rgba(94, 213, 200, 0.15) 100%);
+    -fx-effect: dropshadow(gaussian, rgba(74, 92, 168, 0.22), 22, 0.04, 0, 8);
+    -fx-padding: 22px 24px;
+}
+
+.hero-eyebrow {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: rgba(48, 58, 88, 0.60);
+}
+
+.hero-version {
+    -fx-font-size: 29px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #232A3E;
+}
+
+.chip {
+    -fx-background-radius: 8px;
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.75);
+    -fx-padding: 3px 9px;
+    -fx-font-size: 10.5px;
+    -fx-text-fill: rgba(48, 58, 88, 0.82);
+}
+
+.chip-accent {
+    -fx-background-color: rgba(255, 255, 255, 0.82);
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+.launch-btn {
+    -fx-background-radius: 999px;
+    -fx-background-color: linear-gradient(to bottom right, #7D8BFF 0%, #6C7CFF 52%, #5F6FEF 100%);
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 26px;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.48), 18, 0.20, 0, 7);
+}
+
+.launch-btn:hover {
+    -fx-background-color: linear-gradient(to bottom right, #8B98FF 0%, #7785FF 52%, #6A79F5 100%);
+    -fx-translate-y: -2px;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.55), 22, 0.24, 0, 10);
+}
+
+.launch-btn:pressed {
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.40), 12, 0.16, 0, 4);
+}
+
+.ghost-btn {
+    -fx-background-radius: 999px;
+    -fx-background-color: rgba(255, 255, 255, 0.58);
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.85);
+    -fx-text-fill: rgba(44, 54, 82, 0.92);
+    -fx-font-size: 11.5px;
+    -fx-padding: 0 16px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-cursor: hand;
+}
+
+.ghost-btn:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.85);
+}
+
+.ghost-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #55607A;
+    -fx-stroke-width: 1.85;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+/* 系统监控条：三块数据排在一条卡片里，比三张独立卡更清爽 */
+.stat-strip {
+    -fx-background-radius: 16px;
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.82);
+    -fx-padding: 9px 16px;
+}
+
+.stat-card {
+    -fx-background-color: transparent;
+    -fx-padding: 1px 4px;
+}
+
+.stat-divider {
+    -fx-background-color: rgba(70, 80, 104, 0.14);
+    -fx-min-width: 1px;
+    -fx-pref-width: 1px;
+    -fx-max-width: 1px;
+    -fx-min-height: 34px;
+    -fx-pref-height: 34px;
+    -fx-max-height: 34px;
+}
+
+.stat-label {
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.stat-value {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.stat-unit {
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-ink-3;
+    -fx-padding: 0 0 2px 3px;
+}
+
+/* 最近启动：三张并排卡片 */
+.recent-card {
+    -fx-background-radius: 14px;
+    -fx-background-color: rgba(255, 255, 255, 0.52);
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.80);
+    -fx-padding: 10px 12px;
+    -fx-cursor: hand;
+}
+
+.recent-card:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.82);
+    -fx-border-color: rgba(255, 255, 255, 0.95);
+}
+
+.recent-name {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.recent-meta {
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.recent-time {
+    -fx-font-size: 10px;
+    -fx-text-fill: rgba(80, 90, 112, 0.50);
+}
+
+.round-btn {
+    -fx-background-radius: 999px;
+    -fx-background-color: rgba(108, 124, 255, 0.14);
+    -fx-min-width: 28px;
+    -fx-pref-width: 28px;
+    -fx-max-width: 28px;
+    -fx-min-height: 28px;
+    -fx-pref-height: 28px;
+    -fx-max-height: 28px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.round-btn:hover {
+    -fx-background-color: rgba(108, 124, 255, 0.26);
+}
+
+.round-icon {
+    -fx-fill: -yi-accent;
+    -fx-stroke: transparent;
+}
+
+/* ---------------- 右侧栏 ---------------- */
+
+.rail {
+    -fx-padding: 6px 16px 16px 6px;
+    -fx-spacing: 12px;
+}
+
+.notice-item {
+    -fx-padding: 6px 0;
+}
+
+.notice-dot {
+    -fx-background-radius: 999px;
+    -fx-background-color: linear-gradient(to bottom, #8A97FF, #6C7CFF);
+    -fx-min-width: 5px;
+    -fx-pref-width: 5px;
+    -fx-max-width: 5px;
+    -fx-min-height: 5px;
+    -fx-pref-height: 5px;
+    -fx-max-height: 5px;
+}
+
+.notice-title {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.notice-date {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(80, 90, 112, 0.48);
+}
+
+/* 公告：整行可点，点开历史更新记录 */
+.clickable {
+    -fx-cursor: hand;
+}
+
+.notice-title-strong {
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.notice-item.clickable {
+    -fx-cursor: hand;
+    -fx-background-radius: 10px;
+}
+
+.notice-item.clickable:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.78);
+}
+
+/* 历史更新记录分区 */
+.changelog-item {
+    -fx-background-radius: 12px;
+    -fx-background-color: rgba(255, 255, 255, 0.70);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.88);
+    -fx-padding: 10px 12px;
+}
+
+.changelog-version {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.changelog-date {
+    -fx-font-size: 10px;
+    -fx-text-fill: rgba(80, 90, 112, 0.55);
+}
+
+.changelog-line {
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-ink-2;
+}
+.status-row {
+    -fx-padding: 5px 0;
+}
+
+.status-name {
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.status-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-ink-2;
+    -fx-font-weight: bold;
+}
+
+.dot-ok {
+    -fx-background-radius: 999px;
+    -fx-background-color: #34C58B;
+    -fx-min-width: 6px;
+    -fx-pref-width: 6px;
+    -fx-max-width: 6px;
+    -fx-min-height: 6px;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 197, 139, 0.55), 6, 0.3, 0, 0);
+}
+
+.dot-warn {
+    -fx-background-radius: 999px;
+    -fx-background-color: #F2B33D;
+    -fx-min-width: 6px;
+    -fx-pref-width: 6px;
+    -fx-max-width: 6px;
+    -fx-min-height: 6px;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+}
+
+/* 顶部拖拽提示 / 分隔线 */
+.hairline {
+    -fx-background-color: rgba(255, 255, 255, 0.65);
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+/* 透明窗口最大化：去掉外边距、圆角与投影，贴满屏幕 */
+.window-root.maximized {
+    -fx-padding: 0;
+}
+
+.glass-backdrop.maximized {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-effect: null;
+}
+
+
+/* 主按钮里的播放图标 */
+.play-icon {
+    -fx-fill: white;
+    -fx-stroke: transparent;
+}
+
+/* 下载队列 */
+.queue-name {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.queue-pct {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+.queue-bar {
+    -fx-min-height: 6px;
+    -fx-pref-height: 6px;
+    -fx-max-height: 6px;
+    -fx-padding: 0;
+}
+
+.queue-bar > .track {
+    -fx-background-color: rgba(70, 80, 104, 0.12);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+}
+
+.queue-bar > .bar {
+    -fx-background-color: linear-gradient(to right, #6C7CFF, #4FD1C5);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/* ---------------- 系统监控卡 ---------------- */
+
+.stat-aside {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(80, 90, 112, 0.52);
+}
+
+.stat-hint {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(80, 90, 112, 0.45);
+}
+
+.stat-bar {
+    -fx-min-height: 5px;
+    -fx-pref-height: 5px;
+    -fx-max-height: 5px;
+    -fx-padding: 0;
+}
+
+.stat-bar > .track {
+    -fx-background-color: rgba(70, 80, 104, 0.12);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+}
+
+.stat-bar > .bar {
+    -fx-background-color: linear-gradient(to right, #6C7CFF, #4FD1C5);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+/* ---------------- 版本管理页 ---------------- */
+
+.filter-chip {
+    -fx-background-radius: 999px;
+    -fx-background-color: rgba(255, 255, 255, 0.55);
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.80);
+    -fx-padding: 4px 12px;
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-ink-2;
+    -fx-cursor: hand;
+}
+
+.filter-chip:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.82);
+}
+
+.filter-chip.active {
+    -fx-background-color: linear-gradient(to bottom right, #7D8BFF, #6C7CFF);
+    -fx-border-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.35), 10, 0.10, 0, 3);
+}
+
+.list-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 0;
+}
+
+.list-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.list-scroll .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 7px;
+    -fx-padding: 0 0 0 2px;
+}
+
+.list-scroll .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.list-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: rgba(70, 80, 104, 0.22);
+    -fx-background-radius: 999px;
+}
+
+.list-scroll .scroll-bar:vertical .increment-button,
+.list-scroll .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-opacity: 0;
+}
+
+.list-scroll .scroll-bar .increment-arrow,
+.list-scroll .scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+.version-row {
+    -fx-background-radius: 12px;
+    -fx-background-color: rgba(255, 255, 255, 0.60);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-border-color: transparent;
+    -fx-padding: 8px 10px;
+    -fx-cursor: hand;
+}
+
+.version-row:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.80);
+}
+
+.version-row.active {
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-border-color: rgba(108, 124, 255, 0.42);
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.12), 10, 0.02, 0, 2);
+}
+}
+}
+
+.version-name {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.version-meta {
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.version-tag {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(80, 90, 112, 0.55);
+}
+
+.loader-badge {
+    -fx-background-radius: 10px;
+    -fx-alignment: center;
+    -fx-text-fill: white;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-min-width: 30px;
+    -fx-pref-width: 30px;
+    -fx-max-width: 30px;
+    -fx-min-height: 30px;
+    -fx-pref-height: 30px;
+    -fx-max-height: 30px;
+}
+
+.badge-vanilla {
+    -fx-background-color: linear-gradient(to bottom right, #A3ABBB, #7E8799);
+}
+
+.badge-forge {
+    -fx-background-color: linear-gradient(to bottom right, #8AA3E0, #5C74B8);
+}
+
+.badge-fabric {
+    -fx-background-color: linear-gradient(to bottom right, #8CBCE8, #5E93CC);
+}
+
+.badge-neoforge {
+    -fx-background-color: linear-gradient(to bottom right, #F0AE74, #DD8A45);
+}
+
+.badge-optifine {
+    -fx-background-color: linear-gradient(to bottom right, #AC8FE2, #8368C4);
+}
+
+.detail-card {
+    -fx-background-radius: 18px;
+    -fx-background-color: rgba(255, 255, 255, 0.60);
+    -fx-border-radius: 18px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.82);
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.08), 16, 0.02, 0, 4);
+}
+
+.detail-name {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.field-label {
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-ink-3;
+    -fx-min-width: 72px;
+}
+
+.field-value {
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -yi-ink-2;
+    -fx-font-weight: bold;
+}
+
+.field-hint {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: rgba(80, 90, 112, 0.45);
+}
+.warn-text {
+    -fx-font-size: 9.5px;
+    -fx-text-fill: #E8595B;
+    -fx-padding: 1px 0 0 0;
+}
+
+.mem-slider .tick-mark {
+    -fx-stroke: rgba(70, 80, 104, 0.28);
+    -fx-stroke-width: 1px;
+}
+
+.mem-slider .axis {
+    -fx-tick-label-fill: rgba(80, 90, 112, 0.50);
+    -fx-font-size: 8.5px;
+    -fx-tick-length: 3px;
+}
+
+.path-pill {
+    -fx-background-radius: 10px;
+    -fx-background-color: rgba(255, 255, 255, 0.55);
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.80);
+    -fx-padding: 6px 10px;
+    -fx-font-size: 10.5px;
+    -fx-text-fill: rgba(70, 80, 104, 0.75);
+}
+
+.pill {
+    -fx-background-radius: 9px;
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-border-radius: 9px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.85);
+    -fx-padding: 4px 10px;
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-2;
+    -fx-cursor: hand;
+}
+
+.pill:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.86);
+}
+
+.pill.active {
+    -fx-background-color: rgba(108, 124, 255, 0.16);
+    -fx-border-color: rgba(108, 124, 255, 0.42);
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+.mem-slider {
+    -fx-padding: 0;
+}
+
+.mem-slider .track {
+    -fx-background-color: rgba(70, 80, 104, 0.14);
+    -fx-background-radius: 999px;
+    -fx-pref-height: 5px;
+}
+
+.mem-slider .thumb {
+    -fx-background-color: linear-gradient(to bottom right, #8B98FF, #6C7CFF);
+    -fx-background-radius: 999px;
+    -fx-pref-width: 14px;
+    -fx-pref-height: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.40), 8, 0.15, 0, 2);
+}
+
+.soft-divider {
+    -fx-background-color: rgba(70, 80, 104, 0.10);
+    -fx-min-height: 1px;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+/* ---------------- 标题栏贴图 ---------------- */
+
+.logo-image {
+    -fx-background-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(60, 74, 108, 0.30), 10, 0.10, 0, 3);
+}
+
+/* ---------------- 重命名 / 配色 / 下拉 ---------------- */
+
+.pencil-btn {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px;
+    -fx-min-width: 24px;
+    -fx-pref-width: 24px;
+    -fx-max-width: 24px;
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.pencil-btn:hover {
+    -fx-background-color: rgba(108, 124, 255, 0.16);
+}
+
+.pencil-btn:hover .ghost-icon {
+    -fx-stroke: -yi-accent-deep;
+}
+
+.color-dot {
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+    -fx-border-color: rgba(255, 255, 255, 0.88);
+    -fx-min-width: 14px;
+    -fx-pref-width: 14px;
+    -fx-max-width: 14px;
+    -fx-min-height: 14px;
+    -fx-pref-height: 14px;
+    -fx-max-height: 14px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(60, 74, 108, 0.32), 6, 0.20, 0, 1);
+}
+
+.color-dot:hover {
+    -fx-scale-x: 1.18;
+    -fx-scale-y: 1.18;
+}
+
+.swatch {
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-width: 2px;
+    -fx-border-color: transparent;
+    -fx-min-width: 22px;
+    -fx-pref-width: 22px;
+    -fx-max-width: 22px;
+    -fx-min-height: 22px;
+    -fx-pref-height: 22px;
+    -fx-max-height: 22px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(60, 74, 108, 0.24), 6, 0.15, 0, 1);
+}
+
+.swatch:hover {
+    -fx-scale-x: 1.12;
+    -fx-scale-y: 1.12;
+}
+
+.swatch.active {
+    -fx-border-color: rgba(44, 54, 82, 0.55);
+}
+
+.select-pill {
+    -fx-cursor: hand;
+}
+
+/* ---------------- 弹窗 ---------------- */
+
+.overlay {
+    -fx-background-color: transparent;
+}
+
+.scrim {
+    -fx-background-color: rgba(38, 48, 74, 0.22);
+    -fx-background-radius: 26px;
+}
+
+.overlay-card {
+    -fx-background-color: transparent;
+}
+
+.dialog-card {
+    -fx-background-radius: 18px;
+    -fx-background-color: rgba(255, 255, 255, 0.94);
+    -fx-border-radius: 18px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.92);
+    -fx-effect: dropshadow(gaussian, rgba(40, 52, 84, 0.32), 30, 0.08, 0, 10);
+}
+
+.dialog-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.dialog-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.dialog-field {
+    -fx-background-color: rgba(255, 255, 255, 0.88);
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(108, 124, 255, 0.38);
+    -fx-padding: 6px 10px;
+    -fx-font-size: 12px;
+    -fx-text-fill: -yi-ink;
+}
+
+.dialog-item {
+    -fx-background-radius: 10px;
+    -fx-background-color: rgba(255, 255, 255, 0.55);
+    -fx-padding: 7px 10px;
+    -fx-font-size: 11.5px;
+    -fx-text-fill: -yi-ink-2;
+    -fx-cursor: hand;
+}
+
+.dialog-item:hover {
+    -fx-background-color: rgba(108, 124, 255, 0.14);
+}
+
+.dialog-item.active {
+    -fx-background-color: rgba(108, 124, 255, 0.18);
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+/* ---------------- 内存条（自绘） ---------------- */
+
+.mem-bar {
+    -fx-padding: 0;
+}
+
+.mem-bar-track {
+    -fx-background-color: rgba(70, 80, 104, 0.14);
+    -fx-background-radius: 999px;
+}
+
+.mem-bar-used {
+    -fx-background-color: linear-gradient(to right, #F7D070, #E9A93C);
+    -fx-background-radius: 999px;
+}
+
+.mem-bar-alloc {
+    -fx-background-color: linear-gradient(to right, #6EE0C8, #2FB99C);
+    -fx-background-radius: 999px;
+}
+
+.mem-bar-tick {
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-background-radius: 999px;
+}
+
+.mem-bar-thumb {
+    -fx-fill: #FFFFFF;
+    -fx-stroke: #2FB99C;
+    -fx-stroke-width: 2px;
+    -fx-effect: dropshadow(gaussian, rgba(60, 74, 108, 0.28), 8, 0.10, 0, 2);
+}
+
+.legend-dot {
+    -fx-min-width: 8px;
+    -fx-pref-width: 8px;
+    -fx-max-width: 8px;
+    -fx-min-height: 8px;
+    -fx-pref-height: 8px;
+    -fx-max-height: 8px;
+    -fx-background-radius: 3px;
+}
+
+.legend-used {
+    -fx-background-color: #EDB84C;
+}
+
+.legend-alloc {
+    -fx-background-color: #35C6A6;
+}
+
+.legend-free {
+    -fx-background-color: rgba(70, 80, 104, 0.20);
+}
+
+/* ---------------- 分组 ---------------- */
+
+.group-chip {
+    -fx-background-color: rgba(108, 124, 255, 0.10);
+    -fx-border-color: rgba(108, 124, 255, 0.26);
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.group-pill {
+    -fx-background-color: rgba(108, 124, 255, 0.14);
+    -fx-border-color: rgba(108, 124, 255, 0.38);
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-weight: bold;
+}
+
+.dialog-check {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.dialog-check .box {
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-background-color: rgba(255, 255, 255, 0.78);
+    -fx-border-color: rgba(108, 124, 255, 0.35);
+}
+
+.dialog-check:selected .box {
+    -fx-background-color: linear-gradient(to bottom right, #8B98FF, #6C7CFF);
+    -fx-border-color: transparent;
+}
+
+/* ---------------- 分组次级栏位 ---------------- */
+
+.group-rail {
+    -fx-background-color: rgba(255, 255, 255, 0.42);
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.72);
+}
+
+.group-item {
+    -fx-background-color: rgba(255, 255, 255, 0.56);
+    -fx-background-radius: 11px;
+    -fx-border-radius: 11px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.86);
+    -fx-padding: 8px 10px;
+    -fx-cursor: hand;
+}
+
+.group-item:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.86);
+}
+
+.group-item.active {
+    -fx-background-color: rgba(108, 124, 255, 0.18);
+    -fx-border-color: rgba(108, 124, 255, 0.46);
+}
+
+.group-name {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.group-item.active .group-name {
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.group-meta {
+    -fx-font-size: 9px;
+    -fx-text-fill: rgba(80, 90, 112, 0.52);
+}
+
+.group-add .group-name {
+    -fx-font-size: 11px;
+    -fx-text-fill: -yi-accent-deep;
+}
+
+/* ---------------- 关闭隔离的红色确认窗口 ---------------- */
+
+.danger-card {
+    -fx-background-color: rgba(255, 246, 246, 0.97);
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(226, 84, 88, 0.55);
+}
+
+.danger-title {
+    -fx-text-fill: #D8412F;
+}
+
+.dialog-warn {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: #C0392B;
+}
+
+.danger-btn {
+    -fx-background-color: linear-gradient(to bottom right, #F0705F, #D8412F);
+    -fx-text-fill: white;
+}
+
+
+.hero-greeting {
+    -fx-font-size: 13px;
+    -fx-text-fill: rgba(44, 54, 82, 0.72);
+}
+.danger-btn:hover {
+    -fx-background-color: linear-gradient(to bottom right, #F5806F, #E14A36);
+}
+
+/* ---------------- 图标按钮 / 栏位收起 ---------------- */
+
+.icon-btn {
+    -fx-min-width: 42px;
+    -fx-pref-width: 42px;
+    -fx-max-width: 42px;
+    -fx-min-height: 42px;
+    -fx-pref-height: 42px;
+    -fx-max-height: 42px;
+    -fx-padding: 0;
+    -fx-background-radius: 999px;
+    -fx-alignment: center;
+}
+
+.icon-btn-sm {
+    -fx-min-width: 32px;
+    -fx-pref-width: 32px;
+    -fx-max-width: 32px;
+    -fx-min-height: 32px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+}
+
+.play-icon-lg {
+    -fx-fill: white;
+    -fx-stroke: transparent;
+}
+
+.ghost-icon-lg {
+    -fx-fill: transparent;
+    -fx-stroke: #55607A;
+    -fx-stroke-width: 1.7;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+.group-initial {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: rgba(44, 54, 82, 0.86);
+}
+
+.group-item.active .group-initial {
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.group-item.compact {
+    -fx-padding: 8px 4px;
+    -fx-alignment: center;
+}
+
+.version-row.compact {
+    -fx-padding: 8px 4px;
+}
+/* ---------------- 拖拽安装 ---------------- */
+
+.drop-overlay {
+    -fx-background-color: rgba(232, 238, 250, 0.72);
+}
+
+.drop-overlay-card {
+    -fx-background-radius: 18px;
+    -fx-background-color: rgba(255, 255, 255, 0.96);
+    -fx-border-radius: 18px;
+    -fx-border-width: 2px;
+    -fx-border-color: rgba(108, 124, 255, 0.55);
+    -fx-padding: 18px 26px;
+    -fx-effect: dropshadow(gaussian, rgba(60, 74, 120, 0.22), 26, 0.10, 0, 10);
+}
+
+.drop-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.drop-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.drop-zone {
+    -fx-background-radius: 14px;
+    -fx-background-color: rgba(108, 124, 255, 0.06);
+    -fx-border-radius: 14px;
+    -fx-border-width: 1.6px;
+    -fx-border-color: rgba(108, 124, 255, 0.35);
+    -fx-border-style: segments(6, 5) line-cap round;
+}
+
+.drop-glyph {
+    -fx-font-size: 20px;
+    -fx-text-fill: -yi-accent;
+}
+
+/* ---------------- 搜索模式 ---------------- */
+
+.search-panel {
+    -fx-padding: 4px 0 0 0;
+}
+
+.search-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+    -fx-padding: 0 0 2px 2px;
+}
+
+.search-result {
+    -fx-background-radius: 12px;
+    -fx-background-color: rgba(255, 255, 255, 0.52);
+    -fx-border-radius: 12px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.78);
+    -fx-padding: 8px 12px;
+    -fx-cursor: hand;
+}
+
+.search-result:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.86);
+}
+
+.result-tag {
+    -fx-background-radius: 8px;
+    -fx-background-color: rgba(108, 124, 255, 0.14);
+    -fx-text-fill: -yi-accent-deep;
+    -fx-font-size: 9.5px;
+    -fx-padding: 2px 7px;
+}
+
+.result-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.result-sub {
+    -fx-font-size: 10px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+/* ---------------- 设置页 ---------------- */
+
+.settings-row {
+    -fx-padding: 2px 0;
+}
+
+.settings-label {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.settings-hint {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.search-icon {
+    -fx-fill: transparent;
+    -fx-stroke: #5D6880;
+    -fx-stroke-width: 2;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+
+/* ---------------- 下载中心进度条 ---------------- */
+
+.progress-line {
+    -fx-pref-height: 8px;
+    -fx-min-height: 8px;
+    -fx-max-height: 8px;
+    -fx-padding: 0;
+}
+
+.progress-line > .track {
+    -fx-background-color: rgba(70, 80, 104, 0.12);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+}
+
+.progress-line > .bar {
+    -fx-background-color: linear-gradient(to right, #6C7CFF, #4FD1C5);
+    -fx-background-radius: 999px;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.progress-note {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+/* ---------------- 模组管理 ---------------- */
+
+.mod-row {
+    -fx-background-color: rgba(255, 255, 255, 0.62);
+    -fx-background-radius: 14px;
+    -fx-padding: 9px 12px;
+}
+
+.mod-row:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.86);
+}
+
+.mod-icon {
+    -fx-background-color: rgba(108, 124, 255, 0.14);
+    -fx-background-radius: 10px;
+}
+
+.mod-icon-letter {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-accent-deep;
+}
+
+.mod-name {
+    -fx-font-size: 12.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink;
+}
+
+.mod-meta {
+    -fx-font-size: 10.5px;
+    -fx-text-fill: -yi-ink-3;
+}
+
+.mod-chip {
+    -fx-font-size: 10px;
+    -fx-padding: 2px 8px;
+    -fx-background-radius: 999px;
+    -fx-background-color: rgba(70, 80, 104, 0.10);
+    -fx-text-fill: -yi-ink-2;
+}
+
+.mod-chip.source-cf {
+    -fx-background-color: rgba(247, 146, 53, 0.16);
+    -fx-text-fill: #B4661C;
+}
+
+.mod-chip.source-mr {
+    -fx-background-color: rgba(28, 217, 133, 0.18);
+    -fx-text-fill: #12805A;
+}
