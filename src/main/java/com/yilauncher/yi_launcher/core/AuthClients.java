@@ -101,7 +101,6 @@ public final class AuthClients {
                 }
             }
         } catch (Exception ignored) {
-            // 皮肤拿不到就用史蒂夫
         }
         return "";
     }
@@ -129,7 +128,6 @@ public final class AuthClients {
         if (override != null && !override.isBlank()) {
             return override.trim();
         }
-        // 设置页里填的客户端 ID（config.json 的 ui.microsoftClientId）
         String saved = LauncherConfig.load().ui().msClientId();
         return saved.isBlank() ? DEFAULT_MS_CLIENT_ID : saved;
     }
@@ -182,7 +180,6 @@ public final class AuthClients {
         }
         String accessToken = Json.string(token, "access_token", "");
 
-        // 1) Xbox Live
         String xblBody = "{\"Properties\":{\"AuthMethod\":\"RPS\",\"SiteName\":\"user.auth.xboxlive.com\","
                 + "\"RpsTicket\":" + quote("d=" + accessToken) + "},"
                 + "\"RelyingParty\":\"http://auth.xboxlive.com\",\"TokenType\":\"JWT\"}";
@@ -193,7 +190,6 @@ public final class AuthClients {
             throw new AuthException("Xbox Live 验证失败");
         }
 
-        // 2) XSTS
         String xstsBody = "{\"Properties\":{\"SandboxId\":\"RETAIL\","
                 + "\"UserTokens\":[" + quote(xblToken) + "]},"
                 + "\"RelyingParty\":\"rp://api.minecraftservices.com/\",\"TokenType\":\"JWT\"}";
@@ -206,7 +202,6 @@ public final class AuthClients {
         String xstsUhs = Json.string(Json.map(Json.list(Json.map(xsts.get("DisplayClaims")).get("xui")).get(0)),
                 "uhs", uhs);
 
-        // 3) Minecraft 登录
         String mcBody = "{\"identityToken\":" + quote("XBL3.0 x=" + xstsUhs + ";" + xstsToken) + "}";
         Map<String, Object> mc = postJson(
                 "https://api.minecraftservices.com/authentication/login_with_xbox", mcBody, null);
@@ -215,7 +210,6 @@ public final class AuthClients {
             throw new AuthException("Minecraft 登录失败");
         }
 
-        // 4) 档案
         Map<String, Object> profile = getJson("https://api.minecraftservices.com/minecraft/profile", mcToken);
         if (profile == null) {
             throw new AuthException("拿不到 Minecraft 档案（这个账号可能没有购买）");

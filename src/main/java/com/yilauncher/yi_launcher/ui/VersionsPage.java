@@ -200,7 +200,6 @@ public final class VersionsPage extends BorderPane {
         this.groupScroll = groups;
         this.listScroll = scroll;
         applyWidths(false);
-        // 鼠标不在栏位上时自动收窄：分组只留首字，版本只留图标，把宽度让给详情
         rail.hoverProperty().addListener((obs, was, now) -> setRailExpanded(now));
         scroll.hoverProperty().addListener((obs, was, now) -> setListExpanded(now));
         detailCard = new VBox(detailBox);
@@ -246,18 +245,13 @@ public final class VersionsPage extends BorderPane {
         double railWidth = railExpanded ? 172 : 62;
         double listWidth = listExpanded ? 268 : 78;
         if (animate) {
-            // 每次换向都递增：上一次动画的收尾任务不能把新的动画状态冲掉
             final int token = ++widthToken;
             if (listScroll != null) {
-                // 内容永远跟着视口：不再给列表内容单独做一套宽度动画
                 listScroll.setFitToWidth(true);
             }
-            // 展开带一点弹簧过冲手感；收起不能用弹簧——会先窄过头再弹回来，看着像抽搐
             Motion.width(rail, railWidth, 300, railExpanded ? Motion.SPRING : Motion.SOFT);
             Motion.width(groupScroll, railWidth - 20, 300, railExpanded ? Motion.SPRING : Motion.SOFT);
             Motion.width(listScroll, listWidth, 300, listExpanded ? Motion.SPRING : Motion.SOFT);
-            // 换紧凑行放到 setRailExpanded / setListExpanded 里安排：那里才是"真的收起了"，
-            // 在这里安排的话，鼠标在两条栏位之间移动会重复触发重建，分组首字就会一闪一闪。
             return;
         }
 
@@ -316,8 +310,6 @@ public final class VersionsPage extends BorderPane {
         }
         listExpanded = expanded;
         if (expanded) {
-            // 展开要重建行：先记下徽标在屏幕上的位置，重建后把新徽标摆回同一位置再滑回左边，
-            // 否则「布局居中」的紧凑行一换行徽标就会瞬间往左跳一下
             Bounds before = badgeSceneBounds();
             rebuildList();
             glideBadges(expandedStartOffset(before), 0);
@@ -650,11 +642,9 @@ public final class VersionsPage extends BorderPane {
             Label tag = Ui.label(version.modsCount > 0 ? version.modsCount + " 模组" : "无模组", "version-tag");
             tag.setMinWidth(0);
             tag.setTextOverrun(javafx.scene.control.OverrunStyle.CLIP);
-            // 不再用 spacer 撑开：让文字区自己吃掉剩余宽度，栏位变窄时文字变成省略号
             row = new HBox(10, badge, texts, tag);
             row.setAlignment(Pos.CENTER_LEFT);
         } else {
-            // 收起时只留加载器图标，把宽度让给详情
             row = new HBox(badge);
             row.setAlignment(Pos.CENTER);
             row.getStyleClass().add("compact");
@@ -711,7 +701,6 @@ public final class VersionsPage extends BorderPane {
         }
         memoryLabel.setText(memoryText(version.effectiveMemory()));
 
-        // 可滚动部分：路径、运行设置、快捷目录、底部信息
         VBox body = new VBox(14,
                 pathRow(version),
                 divider(),
@@ -732,7 +721,6 @@ public final class VersionsPage extends BorderPane {
         scroller.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
         VBox.setVgrow(scroller, Priority.ALWAYS);
 
-        // 常驻顶部：版本名 / 信息 / 启动 / 打开目录
         VBox header = new VBox(10, detailHeader(version), statusLabel);
         detailBox.getChildren().setAll(header, scroller);
         applyAccent(version);
@@ -819,7 +807,6 @@ public final class VersionsPage extends BorderPane {
 
         VBox texts = new VBox(6, nameRow, chips);
 
-        // 只留图标，省出横向空间给标题和 chips
         Button launchBtn = new Button();
         launchBtn.getStyleClass().addAll("launch-btn", "icon-btn");
         launchBtn.setGraphic(Icons.icon(Icons.PLAY, 22, "play-icon-lg"));
@@ -835,7 +822,6 @@ public final class VersionsPage extends BorderPane {
         openBtn.setTooltip(new javafx.scene.control.Tooltip("打开版本文件夹"));
         openBtn.setOnAction(e -> openFolder(version));
 
-        // 「选择游戏」：把启动页主模块切换到这个版本
         boolean chosen = LauncherEngine.get().chosen() == version;
         Button pickBtn = new Button("选择游戏");
         pickBtn.getStyleClass().add("ghost-btn");
@@ -919,7 +905,6 @@ public final class VersionsPage extends BorderPane {
         group.forEach(Motion::pressFade);
 
         memoryLabel.setText(memoryText(version.effectiveMemory()));
-        // 选项直接丢进可换行的行里：空间不够就换行，不会被挤掉
         javafx.scene.layout.FlowPane row = settingRow("分配内存", auto,
                 presets.get(0), presets.get(1), presets.get(2), custom, memoryLabel);
 
@@ -1198,7 +1183,6 @@ public final class VersionsPage extends BorderPane {
             if (!version.isolation) {
                 return;
             }
-            // 关掉隔离有风险，先弹红色确认窗口
             confirmDisableIsolation(() -> {
                 Ui.selectOne(group, shared);
                 if (groupLevel) {
@@ -1245,7 +1229,6 @@ public final class VersionsPage extends BorderPane {
             try {
                 chooser.setInitialDirectory(new java.io.File(System.getProperty("user.home")));
             } catch (Exception ignored) {
-                // 家目录不可用时让系统自己决定
             }
             java.io.File chosen = chooser.showDialog(getScene() == null ? null : getScene().getWindow());
             if (chosen != null) {

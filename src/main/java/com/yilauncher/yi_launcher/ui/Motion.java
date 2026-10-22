@@ -121,7 +121,6 @@ public final class Motion {
             }
         });
         running.put(key, anim);
-        // 统一在这里套速度倍率：改一次设置，所有动效一起变快/变慢
         anim.setRate(speed);
         anim.play();
     }
@@ -290,8 +289,6 @@ public final class Motion {
     }
 
     private static void indent(javafx.scene.layout.Region node, double extra, int ms, Interpolator ease) {
-        // 用 padding（而不是 insets）当基准：insets 还包含边框，
-        // 拿它回写 padding 会让行高变大，下面的条目就会被挤得抖一下
         Object storedBase = node.getProperties().get("yi.indentBase");
         Object storedFrame = node.getProperties().get("yi.indentFrame");
         javafx.geometry.Insets currentPadding = node.getPadding();
@@ -350,11 +347,9 @@ public final class Motion {
         if (!name.toLowerCase(java.util.Locale.ROOT).contains("windows")) {
             return 0;
         }
-        // JDK 19+ 在 Win11 上会直接把 os.name 写成 "Windows 11"
         if (name.contains("11")) {
             return 2;
         }
-        // 老 JDK 只会给 "Windows 10"（Win11 也是 10.0），用注册表里的 build 号兜底
         return windowsBuild() >= 22000 ? 2 : 1;
     }
 
@@ -374,7 +369,6 @@ public final class Motion {
                 return Integer.parseInt(matcher.group(1));
             }
         } catch (Exception ignored) {
-            // 拿不到 build 号就按 Win10 处理，少一点缩放而已
         }
         return 0;
     }
@@ -388,7 +382,6 @@ public final class Motion {
         }
         switch (OS_WINDOW_LEVEL) {
             case 2 -> {
-                // 和系统开窗一致：小一圈 + 略低 + 透明，再一起收回来
                 root.setOpacity(0);
                 root.setScaleX(0.90);
                 root.setScaleY(0.90);
@@ -401,7 +394,6 @@ public final class Motion {
                 root.setTranslateY(14);
             }
             default -> {
-                // 其它系统维持原状
             }
         }
     }

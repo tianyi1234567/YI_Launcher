@@ -174,7 +174,6 @@ public final class SettingsPage extends BorderPane {
                 new ProcessBuilder("explorer.exe", parent.toString()).start();
             }
         } catch (Exception ignored) {
-            // 打不开就算了，不打断设置页
         }
     }
 }

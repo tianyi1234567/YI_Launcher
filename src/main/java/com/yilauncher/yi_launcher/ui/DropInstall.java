@@ -230,7 +230,6 @@ public final class DropInstall {
             status.setText("正在安装…");
             overlay.hide();
 
-            // 装整合包要联网下载，进度动画得看得见：直接切到下载中心
             DownloadsPage page = overlay instanceof MainView view ? view.openDownloads() : null;
             if (page != null) {
                 page.beginPack(target, pack.loader());

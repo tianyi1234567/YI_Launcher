@@ -137,7 +137,6 @@ public final class JavaRuntimes {
                 addExe(out, dir.resolve("bin"));
             }
         } catch (IOException ignored) {
-            // 忽略
         }
     }
 
@@ -146,7 +145,6 @@ public final class JavaRuntimes {
         if (javaHome != null && !javaHome.isBlank()) {
             addExe(out, Path.of(javaHome, "bin"));
         }
-        // PATH 里的 java
         String path = System.getenv("PATH");
         if (path != null) {
             for (String entry : path.split(java.io.File.pathSeparator)) {
@@ -187,7 +185,6 @@ public final class JavaRuntimes {
                     addExe(out, dir.resolve("Contents").resolve("Home").resolve("bin"));
                 }
             } catch (IOException ignored) {
-                // 忽略
             }
         }
     }

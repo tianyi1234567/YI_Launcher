@@ -203,7 +203,7 @@ public final class GameLaunch {
             boolean nativeOnly = legacyNative != null
                     || (classifier != null && classifier.startsWith("natives-"));
             if (nativeOnly && archMismatch(classifier != null ? classifier : legacyNative)) {
-                continue; // arm64 / x86 的原生库在别的架构上没必要下载
+                continue;
             }
 
             Path artifact = legacyNative != null
@@ -224,7 +224,6 @@ public final class GameLaunch {
             }
             if (nativeOnly) {
                 extractNatives(artifact, nativesDir);
-                // LWJGL 3 也能直接从 classpath 里的 natives jar 自行解压，两路都保留更稳
                 classpath.add(artifact.toString());
             } else {
                 classpath.add(artifact.toString());
@@ -254,8 +253,6 @@ public final class GameLaunch {
             }
         }
         if (jars.isEmpty()) {
-            // 客户端 jar 不在本地时，顺着继承链找第一个带 downloads.client 的版本（就是原版那层），
-            // jar 必须放回它自己的版本目录：整合包/加载器自己的 json 里没有 client 下载信息
             String cursorJson = id;
             Set<String> visited = new HashSet<>();
             while (cursorJson != null && visited.add(cursorJson)) {
@@ -429,7 +426,6 @@ public final class GameLaunch {
                 }
             }
         } catch (IOException ignored) {
-            // 解压失败不阻断启动，游戏自己会报错
         }
     }
 
@@ -478,7 +474,7 @@ public final class GameLaunch {
         }
         for (Map.Entry<String, Object> feature : Json.map(rule.get("features")).entrySet()) {
             if (Boolean.TRUE.equals(feature.getValue())) {
-                return false; // 启动器没有开启 demo / 自定义分辨率等特性
+                return false;
             }
         }
         return true;
@@ -569,7 +565,6 @@ public final class GameLaunch {
     private static Map<String, String> variables(Path root, VersionEntry entry, String classpath,
                                                  Path nativesDir, String assetIndex) {
         Map<String, String> vars = new HashMap<>();
-        // 用当前登录的账户进服：正版 / LS 站带令牌，离线就是本机按名字算的 UUID
         Account account = AccountStore.get().selectedOrGuest();
         String player = account.name == null || account.name.isBlank() ? "Steve" : account.name;
         String uuid = account.uuid == null || account.uuid.isBlank()

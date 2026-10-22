@@ -111,7 +111,6 @@ public final class PackInstaller {
                     if (projectId <= 0 || fileId <= 0) {
                         continue;
                     }
-                    // CF 清单只有 id：文件名等真正安装时再向 cfwidget 换
                     files.add(new PackFile(projectId, fileId, "",
                             "", "", 0, Json.bool(item, "required", true)));
                 }
@@ -286,13 +285,11 @@ public final class PackInstaller {
             watcher.interrupt();
         }
 
-        // 有文件没下来就不算装好：直接清掉这次下载的内容，让调用方弹「下载源网络不佳」
         if (mods.failed() > 0) {
             deleteTree(folder);
             throw new IOException("下载源网络不佳：" + mods.failed() + " 个文件没下下来（已删除本次下载的内容）");
         }
 
-        // 光解包是启动不了的：这一步把原版版本信息 + 模组加载器补齐
         if (progress != null) {
             progress.update(0.98, 1, 1, "准备模组加载器");
         }
@@ -305,7 +302,6 @@ public final class PackInstaller {
                         }
                     });
         } catch (IOException error) {
-            // 加载器装不上，这个整合包留着也启动不了，一起清掉
             deleteTree(folder);
             throw new IOException("模组加载器安装失败：" + error.getMessage()
                     + "（已删除本次安装的内容）", error);
@@ -330,11 +326,9 @@ public final class PackInstaller {
                 try {
                     Files.deleteIfExists(path);
                 } catch (IOException ignored) {
-                    // 删不掉就算了，别把失败提示吞掉
                 }
             });
         } catch (IOException ignored) {
-            // 同上
         }
     }
 
@@ -416,7 +410,6 @@ public final class PackInstaller {
                     done++;
                 }
             } catch (Exception ignored) {
-                // 单个条目失败不影响其它文件
             }
         }
     }
@@ -479,7 +472,6 @@ public final class PackInstaller {
                     .sorted()
                     .forEach(result::add);
         } catch (IOException ignored) {
-            // 读不了就当没有
         }
         return result;
     }

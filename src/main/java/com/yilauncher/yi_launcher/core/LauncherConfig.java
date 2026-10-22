@@ -239,7 +239,6 @@ public final class LauncherConfig {
         sb.append("  \"chosenVersion\": ").append(quote(chosenVersion)).append(",\n");
         sb.append("  \"selectedGroup\": ").append(quote(selectedGroup)).append(",\n");
 
-        // ui 段单独拼一次，去掉开头的逗号，否则会写成 {"ui": {, "...}} 这种坏 JSON
         StringBuilder uiFields = new StringBuilder();
         appendDecimal(uiFields, "motionSpeed", ui.motionSpeed);
         appendDecimal(uiFields, "uiOpacity", ui.uiOpacity);

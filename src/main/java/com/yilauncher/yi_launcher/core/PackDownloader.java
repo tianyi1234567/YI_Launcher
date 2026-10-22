@@ -115,7 +115,6 @@ final class PackDownloader implements Runnable {
             sizes.add(UNKNOWN_SIZE);
         }
 
-        // ① 解析：文件名 / 源列表 / 体积
         AtomicInteger cursor = new AtomicInteger();
         runWorkers(4, () -> {
             while (true) {
@@ -131,12 +130,10 @@ final class PackDownloader implements Runnable {
             }
         });
 
-        // ② 下载：4 条线程并行，字节进度实时累加
         note = "下载模组";
         List<Integer> retry = Collections.synchronizedList(new ArrayList<>());
         downloadPass(plan, names, sizes, retry);
 
-        // ③ 失败的文件再补一轮（重新解析一次，换个源试试）
         if (!retry.isEmpty()) {
             note = "重试失败的模组";
             List<Integer> pending = new ArrayList<>(retry);
@@ -162,7 +159,6 @@ final class PackDownloader implements Runnable {
                 queue.add(index);
             }
         } else {
-            // 重试轮：只跑待补的那些
             synchronized (retry) {
                 queue.addAll(retry);
             }
@@ -239,7 +235,6 @@ final class PackDownloader implements Runnable {
                 sources.add(new Mirrors.Source("MCIM", mirror));
             }
         }
-        // 上次实测快的源提到最前（第一个文件仍按 cfwidget → MCIM 的顺序）
         String fastest = preferred;
         if (fastest != null && !fastest.isBlank() && sources.size() > 1) {
             sources.sort((left, right) -> Boolean.compare(
@@ -264,7 +259,6 @@ final class PackDownloader implements Runnable {
                 return true;
             }
         } catch (IOException ignored) {
-            // 读不到就当没下过
         }
         AtomicLong fileDone = new AtomicLong();
         AtomicLong last = new AtomicLong();

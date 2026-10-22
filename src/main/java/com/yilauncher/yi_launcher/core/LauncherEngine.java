@@ -338,12 +338,9 @@ public final class LauncherEngine {
                 listener.accept(snapshot);
             }
             listeners.clear();
-            // Java 列表要逐个跑 --version，比较慢（实测 ~6s）；放到通知之后在后台热缓存，
-            // 免得详情页的下拉列表拖慢版本列表的首次显示。
             try {
                 JavaRuntimes.all(root);
             } catch (Exception ignored) {
-                // 忽略
             }
         }, "yi-version-scan");
         thread.setDaemon(true);
@@ -368,7 +365,6 @@ public final class LauncherEngine {
                         entry.javaPath = Path.of(settings.javaPath);
                         entry.javaLabel = settings.javaLabel;
                     } catch (Exception ignored) {
-                        // 路径失效就当没设置
                     }
                 }
                 if (settings.windowMode != null) {
@@ -400,7 +396,6 @@ public final class LauncherEngine {
                 return entry;
             }
         }
-        // 兼容旧配置：只存了版本 id
         for (VersionEntry entry : versions) {
             if (entry.id.equals(key)) {
                 return entry;
@@ -417,7 +412,6 @@ public final class LauncherEngine {
             try {
                 status.accept("正在检查依赖与 Java…");
                 GameLaunch.Result result = GameLaunch.launch(launchRoot, entry, entry.effectiveMemory(), status);
-                // 记下这次启动，重启后启动页才能显示"上次启动的版本"
                 persist(entry);
                 if (!result.missing().isEmpty()) {
                     status.accept("缺少 " + result.missing().size() + " 个库文件，游戏可能启动失败");

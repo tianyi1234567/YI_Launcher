@@ -146,7 +146,6 @@ public final class AccountDialog {
             current.getChildren().add(row);
         }
 
-        // 存了多个账户时列出来，点一下切换
         List<Account> all = AccountStore.get().accounts();
         if (all.size() > 1) {
             for (Account other : all) {
@@ -299,7 +298,6 @@ public final class AccountDialog {
             }
             setStatus("已登录：" + account.name + " · " + account.kindLabel() + (extra == null ? "" : extra), false);
             notifyChanged();
-            // 停一下让用户看到结果，再自动收起面板
             PauseTransition wait = new PauseTransition(Duration.millis(700));
             wait.setOnFinished(done -> host.hide());
             wait.play();
@@ -382,7 +380,6 @@ public final class AccountDialog {
     private static void copy(String text) {
         String value = text == null ? "" : text;
         if (!Platform.isFxApplicationThread()) {
-            // 微软流程里 openUrl 是在后台线程调的，剪贴板必须回 FX 线程
             Platform.runLater(() -> copy(value));
             return;
         }

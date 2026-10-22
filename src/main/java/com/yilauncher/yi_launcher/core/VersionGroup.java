@@ -49,15 +49,12 @@ public final class VersionGroup {
         Path versionsDir;
         Path root;
         if (Files.isDirectory(nested)) {
-            // 选的是 .minecraft 这类根目录
             versionsDir = nested;
             root = normalized;
         } else if (Files.isRegularFile(normalized.resolve(normalized.getFileName() + ".json"))) {
-            // 选的是单个版本目录：用它的上一层当 versions 目录
             versionsDir = normalized.getParent() == null ? normalized : normalized.getParent();
             root = versionsDir.getParent() == null ? versionsDir : versionsDir.getParent();
         } else {
-            // 选的是 versions 目录本身
             versionsDir = normalized;
             root = normalized.getParent() == null ? normalized : normalized.getParent();
         }

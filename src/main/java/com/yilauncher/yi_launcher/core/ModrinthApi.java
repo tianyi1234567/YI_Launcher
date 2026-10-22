@@ -44,7 +44,6 @@ public final class ModrinthApi {
                 }
             }
         } catch (Exception ignored) {
-            // 网络失败就当没识别出来，界面照旧显示本地信息
         }
         return result;
     }
@@ -56,7 +55,6 @@ public final class ModrinthApi {
             return result;
         }
         try {
-            // Modrinth 只提供 GET /v2/projects?ids=["a","b"]，没有 POST 版本
             String url = BASE + "/projects?ids=" + encode("[" + joinQuoted(ids) + "]");
             List<Object> items = Json.list(Json.parse(Remote.getText(url)));
             for (Object raw : items) {
@@ -72,7 +70,6 @@ public final class ModrinthApi {
                         Json.string(item, "description", "")));
             }
         } catch (Exception ignored) {
-            // 同上，失败就是没有图标
         }
         return result;
     }

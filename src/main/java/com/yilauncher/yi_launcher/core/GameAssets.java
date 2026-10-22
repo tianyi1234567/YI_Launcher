@@ -45,7 +45,6 @@ public final class GameAssets {
                     return;
                 }
             } catch (IOException ignored) {
-                // 读不到就当缺失
             }
         }
         if (progress != null) {
@@ -80,7 +79,7 @@ public final class GameAssets {
     public static void ensureObjects(Path root, Path versionsDir, String mcVersion,
                                      Progress progress) throws IOException {
         if (System.getProperty("yi.noAssets") != null) {
-            return;   // 调试/快速安装时可以跳过几百 MB 的资源
+            return;
         }
         Path baseJson = versionsDir.resolve(mcVersion).resolve(mcVersion + ".json");
         if (!Files.isRegularFile(baseJson)) {

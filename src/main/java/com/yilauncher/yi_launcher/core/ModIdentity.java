@@ -52,7 +52,6 @@ public final class ModIdentity {
                     .sorted()
                     .forEach(jar -> result.add(local(jar)));
         } catch (Exception ignored) {
-            // 目录读不了就当没有模组
         }
         return result;
     }
@@ -114,7 +113,6 @@ public final class ModIdentity {
                 }
             }
         } catch (Exception ignored) {
-            // jar 坏了也照样列出来，只是没有元数据
         }
         return new LocalMod(jar, fileName, modId, name, version, loader);
     }
@@ -231,7 +229,6 @@ public final class ModIdentity {
             String title = project == null ? "" : project.title();
             String icon = project == null ? "" : project.iconUrl();
             if (icon.toLowerCase(Locale.ROOT).contains(".webp")) {
-                // Modrinth 的图标是 webp，JavaFX 解不了：拿项目名去 CF 换一张 jpg/png
                 icon = cfIcon(title);
             }
             String page = project == null ? "" : "https://modrinth.com/mod/" + project.slug();

@@ -91,7 +91,6 @@ public final class CfWidget {
      */
     private static String encodeSegment(String name) {
         String encoded = java.net.URLEncoder.encode(name, java.nio.charset.StandardCharsets.UTF_8);
-        // URLEncoder 把空格变成 '+'，路径里要的是 %20；真正的 '+' 已经被转成 %2B 了
         return encoded.replace("+", "%20");
     }
 
@@ -116,7 +115,6 @@ public final class CfWidget {
         }
         String body;
         try {
-            // 硬超时：cfwidget 偶尔连上了却一直不回，不能让它卡住整个安装
             body = Remote.withDeadline("cfwidget", 6_000, () -> Remote.getText(url));
             failures = 0;
         } catch (IOException error) {
@@ -128,7 +126,6 @@ public final class CfWidget {
             int id = Json.integer(root, "id", 0);
             String title = Json.string(root, "title", "");
             if (id <= 0 || title.isBlank()) {
-                // cfwidget 找不到时会回 {"error": "not_found"} 这类内容
                 return Optional.empty();
             }
             Map<String, Object> urls = Json.map(root.get("urls"));
@@ -143,7 +140,6 @@ public final class CfWidget {
                 }
                 String version = Json.string(item, "version", "");
                 if (version.isBlank()) {
-                    // versions 里形如 ["Client", "1.20.1", "Forge", "Server"]
                     version = Json.list(item.get("versions")).stream()
                             .map(String::valueOf)
                             .filter(text -> text.matches("\\d+\\.\\d+(\\.\\d+)?"))

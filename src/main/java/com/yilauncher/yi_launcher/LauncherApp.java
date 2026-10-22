@@ -17,7 +17,7 @@ import javafx.util.Duration;
 import java.net.URL;
 
 /**
- * 衣启动器入口：无系统边框 + 透明背景，圆角与阴影全部由场景自己绘制。
+ * 启动器入口
  */
 public class LauncherApp extends Application {
 
@@ -43,19 +43,15 @@ public class LauncherApp extends Application {
         stage.setScene(scene);
         stage.setMinWidth(1000);
         stage.setMinHeight(640);
-        // 开窗前先把"还没展开"的状态摆好，避免第一帧就直接是全亮
         Motion.prepareWindowOpen(root);
         stage.show();
 
-        // 无边框窗口以左上角为锚点，需要手动居中
         Rectangle2D visual = Screen.getPrimary().getVisualBounds();
         stage.setX(visual.getMinX() + (visual.getWidth() - stage.getWidth()) / 2);
         stage.setY(visual.getMinY() + (visual.getHeight() - stage.getHeight()) / 2);
 
-        // 跟着系统质感开窗：Win11 轻微放大 + 淡入，Win10 只淡入，其它系统维持原状
         Motion.windowOpen(root);
 
-        // 开发用：-Dyi.page=versions 可以直接打开指定页面
         String page = System.getProperty("yi.page");
         if (page != null && !page.isBlank()) {
             root.selectPage(page);
@@ -94,7 +90,6 @@ public class LauncherApp extends Application {
     }
 
     public static void main(String[] args) {
-        // 透明窗口里开启 LCD 次像素抗锯齿会让文字边缘发彩，关掉更接近玻璃质感
         System.setProperty("prism.lcdtext", "false");
         launch(args);
     }

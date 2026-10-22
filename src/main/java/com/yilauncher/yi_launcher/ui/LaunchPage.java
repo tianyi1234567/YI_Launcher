@@ -107,7 +107,6 @@ public final class LaunchPage extends BorderPane {
             refreshHero();
             rebuildRecent();
         }));
-        // 搜索模式里按 Esc 随时退出（焦点不在输入框时也管用）
         addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, event -> {
             if (searchMode && event.getCode() == javafx.scene.input.KeyCode.ESCAPE) {
                 exitSearch();
@@ -122,7 +121,6 @@ public final class LaunchPage extends BorderPane {
         VBox main = new VBox(12);
         main.setPadding(new Insets(4, 16, 16, 6));
 
-        // 正常内容（hero / 监控条 / 最近启动）与搜索结果面板叠在一起，进搜索时交叉淡入
         Node hero = buildHero();
         Node stats = buildStats();
         Node recent = buildRecent();
@@ -146,10 +144,8 @@ public final class LaunchPage extends BorderPane {
         searchField.setPromptText("搜索版本 / 模组 / 光影…");
         searchField.getStyleClass().add("search-field");
         searchField.setMinHeight(26);
-        // 先不让它参与焦点遍历，避免切页时自动聚焦弹出搜索模式；点了才打开
         searchField.setFocusTraversable(false);
         searchField.setMaxWidth(Double.MAX_VALUE);
-        // 宽度固定：动画期间只让外框裁剪区变化，输入框不用每帧重排文字（这就是之前掉帧的主因）
         searchField.setMinWidth(2600);
         searchField.setPrefWidth(2600);
         searchField.setMaxWidth(2600);
@@ -161,9 +157,6 @@ public final class LaunchPage extends BorderPane {
         searchBox.setPrefWidth(220);
         searchBox.setMaxWidth(220);
 
-        // 圆角裁剪：收拢时把超出 220 的输入框部分裁掉，看起来就是胶囊窄条。
-        // 圆弧必须跟着高度走（=高度就是半圆端头），写成固定 999 会把胶囊裁成"椭圆"，
-        // 左侧图标正好压在这条弧上，看起来就像被拉长/切扁了。
         javafx.scene.shape.Rectangle clip = new javafx.scene.shape.Rectangle();
         clip.widthProperty().bind(searchBox.widthProperty());
         clip.heightProperty().bind(searchBox.heightProperty());
@@ -204,7 +197,6 @@ public final class LaunchPage extends BorderPane {
         searchField.setFocusTraversable(true);
         searchField.requestFocus();
 
-        // 1) 搜索框与标题淡出
         fadeOut(searchBox, 80, null);
         fadeOut(headerTitles, 80, () -> {
             if (token != searchToken) {
@@ -214,7 +206,6 @@ public final class LaunchPage extends BorderPane {
             headerTitles.setVisible(false);
         });
 
-        // 2) 模块从「最下面」开始依次下滑 + 淡出，越靠上的越晚动
         java.util.List<Node> ordered = new java.util.ArrayList<>(dropTargets);
         ordered.sort((a, b) -> Double.compare(
                 b.localToScene(b.getBoundsInLocal()).getMaxY(),
@@ -223,7 +214,6 @@ public final class LaunchPage extends BorderPane {
             dropOut(ordered.get(i), 220, i * 28);
         }
 
-        // 3) 模块落完之后再让位：把搜索框换成满宽（此刻它还是透明的）
         after(360, () -> {
             if (token != searchToken) {
                 return;
@@ -243,7 +233,6 @@ public final class LaunchPage extends BorderPane {
             fadeIn(searchBox, 120);
         });
 
-        // 4) 结果面板淡入
         after(470, () -> {
             if (token != searchToken) {
                 return;
@@ -269,12 +258,9 @@ public final class LaunchPage extends BorderPane {
         long token = ++searchToken;
         searchDebounce.stop();
 
-        // 1) 面板和搜索框一起先淡出：缩回动作发生在“看不见”的时候，
-        //    不会再出现“先收到最右边、再弹回原位”的跳变
         fadeOut(searchPanel, 90, null);
         fadeOut(searchBox, 70, null);
 
-        // 2) 淡出完成后一次性落位：搜索框直接回到 220，标题/主内容/右栏重新参与布局
         after(80, () -> {
             if (token != searchToken) {
                 return;
@@ -299,7 +285,6 @@ public final class LaunchPage extends BorderPane {
             requestFocus();
         });
 
-        // 3) 布局稳定后再整体淡入，收尾干净（总时长约 200ms）
         after(100, () -> {
             if (token != searchToken) {
                 return;
@@ -308,7 +293,6 @@ public final class LaunchPage extends BorderPane {
             fadeIn(headerTitles, 90);
             fadeIn(normalBody, 110);
             fadeIn(rail, 110);
-            // 各模块复位：位置回到 0、透明度从 0 淡回来（进搜索时是"向下弹出"走的）
             for (Node target : dropTargets) {
                 target.setTranslateY(0);
                 Motion.opacity(target, 1, 130, Motion.SOFT);
@@ -493,13 +477,11 @@ public final class LaunchPage extends BorderPane {
             return;
         }
         try {
-            // 文件就打开所在目录，目录直接打开
             java.nio.file.Path target = java.nio.file.Files.isDirectory(path) ? path : path.getParent();
             if (target != null) {
                 new ProcessBuilder("explorer.exe", target.toString()).start();
             }
         } catch (Exception ignored) {
-            // 打不开就算了
         }
     }
 
@@ -586,7 +568,6 @@ public final class LaunchPage extends BorderPane {
     private void refreshHero() {
         VersionEntry target = heroTarget();
         if (target == null) {
-            // 第一次打开 / 选中过但版本没了：主模块只显示"请选择游戏"
             heroEyebrow.setText("还没有选择游戏");
             heroVersion.setText("请选择游戏");
             heroGreeting.setText("点下面的按钮，挑一个版本开始");
@@ -664,7 +645,6 @@ public final class LaunchPage extends BorderPane {
                     heroStatus.setText(message);
                     if (message.startsWith("已启动")) {
                         button.setText("游戏中…");
-                        // 刚启动过：主模块和最近列表跟着换成这个版本
                         refreshHero();
                         rebuildRecent();
                     } else if (message.startsWith("游戏已退出") || message.startsWith("启动失败")) {
@@ -693,7 +673,6 @@ public final class LaunchPage extends BorderPane {
     /* ============================ 系统监控 ============================ */
 
     private Node buildStats() {
-        // 一条卡片里排三块数据：CPU / 内存 / 时间，中间用细线分隔
         HBox strip = new HBox(0,
                 statCard("CPU 占用率", cpuAside, cpuValue, cpuUnit, cpuBar),
                 statDivider(),
@@ -798,7 +777,6 @@ public final class LaunchPage extends BorderPane {
             HBox.setHgrow(tile, Priority.ALWAYS);
             recentList.getChildren().add(tile);
         }
-        // 最近列表逐条弹入
         Motion.stagger(new java.util.ArrayList<>(recentList.getChildren()), 40, 3);
     }
 
@@ -841,8 +819,6 @@ public final class LaunchPage extends BorderPane {
     /* ============================ 右侧信息栏 ============================ */
 
     private VBox buildRail() {
-        // 只留「公告 + 运行状态」：启动状态/小贴士这种信息量低的卡片去掉，
-        // 右侧栏不再是仪表盘堆砌（PCL2 / HMCL 都是这样收的）
         VBox noticeCard = buildNoticeCard();
         VBox statusCard = buildStatusCard();
         dropTargets.addAll(List.of(noticeCard, statusCard));
@@ -862,7 +838,6 @@ public final class LaunchPage extends BorderPane {
         HBox head = new HBox(Ui.label("公告", "card-title"), Ui.spacer(), all);
         head.setAlignment(Pos.CENTER_LEFT);
 
-        // 只留最新一条公告，但版面仍然按三条留白——以后加公告不会把整块撑高/缩水
         VBox card = new VBox(0, head,
                 noticeRow("0.1.0 版本已基本完成", "今天 · 重要", true),
                 noticePlaceholder(),
@@ -886,9 +861,7 @@ public final class LaunchPage extends BorderPane {
         row.getStyleClass().addAll("notice-item", "clickable");
         row.setAlignment(Pos.CENTER_LEFT);
         row.setOnMouseClicked(e -> openChangelog());
-        // 只用透明度反馈，文字不会跟着缩放发虚。
         Motion.pressFade(row);
-        // 负外边距：hover 底色比文字宽一点，圆点仍与「公告」标题左对齐。
         VBox.setMargin(row, new Insets(0, -8, 0, -8));
         return row;
     }

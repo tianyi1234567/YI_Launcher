@@ -91,7 +91,6 @@ public final class ModsPage extends BorderPane {
         introPlayed = false;
         VersionEntry entry = LauncherEngine.get().selected();
         if (entry == null) {
-            // 没选版本：先让玩家挑一个
             setEmpty("还没有选择版本", "选一个版本之后，这里会列出它的模组");
             openPicker();
             return;
@@ -150,7 +149,6 @@ public final class ModsPage extends BorderPane {
             introPlayed = true;
         }
 
-        // 联网识别：先 CurseForge，再 Modrinth；每认出一个就把这一行补上图标和版本
         Thread worker = new Thread(() -> ModIdentity.enrich(mods, entry.gameVersion,
                 (index, remote) -> Platform.runLater(() -> applyRemote(token, index, remote))),
                 "yi-mod-identify");
@@ -208,7 +206,6 @@ public final class ModsPage extends BorderPane {
                     }
                 });
             } catch (Exception ignored) {
-                // 图标拿不到就不显示，别影响列表
             }
         }, "yi-mod-icon");
         worker.setDaemon(true);

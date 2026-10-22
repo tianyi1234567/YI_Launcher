@@ -21,7 +21,6 @@ public final class Json {
     /* ============================ 对外入口 ============================ */
 
     public static Object parse(String text) {
-        // Windows 记事本一类工具会在开头留 BOM，先剥掉再解析
         String source = text != null && text.startsWith("\uFEFF") ? text.substring(1) : text;
         Json parser = new Json(source);
         parser.skipWhitespace();

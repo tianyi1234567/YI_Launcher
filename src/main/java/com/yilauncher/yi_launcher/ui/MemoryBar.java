@@ -44,7 +44,6 @@ public final class MemoryBar extends Pane {
         allocSeg.getStyleClass().add("mem-bar-alloc");
         thumb.getStyleClass().add("mem-bar-thumb");
         getChildren().addAll(track, usedSeg, allocSeg, thumb);
-        // 统一裁剪：无论怎么布局都不会画到条外面
         setClip(clip);
         setMinHeight(26);
         setPrefHeight(26);
@@ -110,7 +109,6 @@ public final class MemoryBar extends Pane {
     }
 
     private void updateFractions() {
-        // 进度条本身按比例排版，layoutChildren 里算宽度，这里只保证值合法
         if (value.get() > maxMb) {
             value.set(maxMb);
         }
@@ -125,7 +123,6 @@ public final class MemoryBar extends Pane {
         double freeW = Math.max(1, width - usedW);
         double ratio = (x - usedW) / freeW;
         int snapped = (int) Math.round(ratio * maxMb / 1024.0) * 1024;
-        // 拖到最左也给最小分配值，避免 0 MB
         setValue(Math.max(MIN_MB, snapped));
     }
 

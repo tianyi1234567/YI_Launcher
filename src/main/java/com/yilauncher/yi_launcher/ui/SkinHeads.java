@@ -61,7 +61,6 @@ public final class SkinHeads {
                 }
             }
         } catch (Exception ignored) {
-            // 资源缺失：用下面画的兜底
         }
         local = drawnSteve();
         return local;
@@ -119,7 +118,6 @@ public final class SkinHeads {
         double spanX;
         double spanY;
         if (width >= 64) {
-            // 原版 64×64 / 64×32 与 128、256 的高清皮肤：脸固定在左上第 2 格
             double scale = width / 64.0;
             originX = 8 * scale;
             originY = 8 * scale;
@@ -177,7 +175,6 @@ public final class SkinHeads {
                     }
                 }
             } catch (Exception ignored) {
-                // 网络问题 / 皮肤站 404：继续用本地头像
             }
             Image result = loaded;
             if (result != null) {
@@ -209,7 +206,6 @@ public final class SkinHeads {
             setPrefSize(size, size);
             setMaxSize(size, size);
 
-            // 图已经是目标尺寸（自己做的最近邻放大），这里 1:1 画，关掉平滑双保险
             view.setSmooth(false);
             view.setPreserveRatio(false);
             view.setFitWidth(size);
@@ -239,7 +235,6 @@ public final class SkinHeads {
             }
             view.setImage(head(localHead(), size));
             loadAsync(next, image -> {
-                // 期间可能已经换成别的账户了，URL 不一致就丢掉这次结果
                 if (image != null && next.equals(url)) {
                     view.setImage(head(image, size));
                 }

@@ -120,7 +120,6 @@ public final class DownloadsPage extends BorderPane {
         loaderTitle.setText("线程：安装 " + loaderLabel + " 加载器");
         setProgress(0, 0, 0, "准备中", "等待中", "等待中");
 
-        // 拖入卡片：下滑 + 淡出
         Motion.translate(dropCard, 0, 22, 170, Motion.SOFT);
         Motion.opacity(dropCard, 0, 150, Motion.SOFT);
         PauseTransition wait = new PauseTransition(Duration.millis(175));
@@ -144,7 +143,6 @@ public final class DownloadsPage extends BorderPane {
             row.setOpacity(0);
             row.setTranslateY(-14);
         }
-        // 逐层从上到下淡入
         for (int i = 0; i < rows.length; i++) {
             final Node row = rows[i];
             after(i * 70, () -> {

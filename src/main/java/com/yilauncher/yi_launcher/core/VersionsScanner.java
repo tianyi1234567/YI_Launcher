@@ -142,7 +142,6 @@ public final class VersionsScanner {
             if (version.startsWith("natives-")) {
                 version = parts.length >= 4 ? parts[parts.length - 2] : version;
             }
-            // Forge 的版本号形如 1.20.1-47.2.0，只保留加载器自身版本
             if (keyword.equals("forge") && version.contains("-")) {
                 version = version.substring(version.lastIndexOf('-') + 1);
             }
@@ -216,7 +215,6 @@ public final class VersionsScanner {
                         total[0] += Files.size(path);
                     }
                 } catch (IOException ignored) {
-                    // 忽略读不到的文件
                 }
             });
         } catch (IOException ex) {

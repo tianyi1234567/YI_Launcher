@@ -71,7 +71,6 @@ public final class Mirrors {
                     try {
                         Files.deleteIfExists(target);
                     } catch (IOException ignored) {
-                        // 删不掉也无所谓，下一个源会覆盖
                     }
                 }
             }
@@ -125,7 +124,6 @@ public final class Mirrors {
         if (url == null || url.isBlank()) {
             return "";
         }
-        // Forge maven 有两种写法：带 /maven2/ 的和不带的，都要能换
         int forge = url.indexOf("maven.minecraftforge.net/maven2/");
         if (forge >= 0) {
             return BMCL_MAVEN + "/" + url.substring(forge + "maven.minecraftforge.net/maven2/".length());

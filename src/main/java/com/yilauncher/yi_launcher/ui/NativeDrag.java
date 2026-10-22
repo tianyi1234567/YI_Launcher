@@ -41,7 +41,6 @@ final class NativeDrag {
             boolean ok;
             try {
                 String os = System.getProperty("os.name", "").toLowerCase(java.util.Locale.ROOT);
-                // 触碰一下本地库，确认能加载
                 ExtraUser32.EXTRA.GetDoubleClickTime();
                 ok = os.contains("windows");
             } catch (Throwable error) {

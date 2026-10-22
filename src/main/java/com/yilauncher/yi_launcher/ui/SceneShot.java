@@ -37,7 +37,7 @@ public final class SceneShot {
         byte[] rows = new byte[imageSize];
 
         for (int y = 0; y < height; y++) {
-            int rowStart = (height - 1 - y) * stride; // BMP 从下往上存
+            int rowStart = (height - 1 - y) * stride;
             for (int x = 0; x < width; x++) {
                 Color c = reader.getColor(x, y);
                 double alpha = c.getOpacity();

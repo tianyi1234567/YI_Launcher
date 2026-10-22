@@ -45,7 +45,6 @@ public final class LoaderInstaller {
         }
         ensureBaseVersion(root, versionsDir, mcVersion, progress);
         ensureAssetsIndex(root, versionsDir, mcVersion, progress);
-        // 客户端 jar 先备好：Forge 安装器的处理器要用它，启动时也省一次下载
         GameAssets.ensureClient(root, versionsDir, mcVersion,
                 (note, ratio) -> note(progress, note, 0.05));
         String parent = switch (kind) {
@@ -56,7 +55,6 @@ public final class LoaderInstaller {
             case "forge", "neoforge" -> installForge(root, versionsDir, kind, mcVersion, loaderVersion, progress);
             default -> mcVersion;
         };
-        // 资源 objects 放最后：几百 MB，但缺了就只有缺贴图/音效的游戏
         GameAssets.ensureObjects(root, versionsDir, mcVersion,
                 (note, ratio) -> note(progress, note, 0.95));
         return parent;
@@ -116,7 +114,6 @@ public final class LoaderInstaller {
         }
         try {
             Map<String, Object> json = Json.map(Json.parse(Files.readString(baseJson)));
-            // 原版 json 里 assetIndex 在根上（downloads 里只有 client / server / mappings）
             Map<String, Object> index = Json.map(json.get("assetIndex"));
             if (index.isEmpty()) {
                 index = Json.map(Json.map(json.get("downloads")).get("assetIndex"));
@@ -136,7 +133,6 @@ public final class LoaderInstaller {
             Files.createDirectories(target.getParent());
             Mirrors.download(target, Mirrors.withMirror("资源索引", url), null, Mirrors.SMALL_DEADLINE);
         } catch (Exception ignored) {
-            // 索引补不了不算致命：游戏那边会自己报缺资源
         }
     }
 
@@ -245,7 +241,6 @@ public final class LoaderInstaller {
             expectedId = prefix;
         }
 
-        // 已经装过就直接用
         if (Files.isRegularFile(versionsDir.resolve(expectedId).resolve(expectedId + ".json"))) {
             return expectedId;
         }
@@ -264,7 +259,6 @@ public final class LoaderInstaller {
         }
         Mirrors.download(jar, sources, null);
 
-        // 官方安装器要求根目录里有 launcher_profiles.json
         Path profiles = root.resolve("launcher_profiles.json");
         if (!Files.isRegularFile(profiles)) {
             Files.writeString(profiles, "{\"profiles\":{},\"settings\":{},\"version\":3}",
@@ -329,14 +323,11 @@ public final class LoaderInstaller {
             }
             return patched;
         } catch (Exception error) {
-            // 改不了就用原包，慢总比装不上好
             return jar;
         }
     }
 
     private static int runInstaller(Path root, Path jar) throws IOException {
-        // bmclapi 只镜像安装器本身、不提供 forge maven 构件（实测 404），整包改写地址会让安装器直接失败，
-        // 所以这里保持官方地址；国内镜像留给启动时的库下载兜底（GameLaunch）。
         Path runnable = jar;
         Path java = installerJava(root);
         List<String> command = List.of(java.toString(), "-jar", runnable.toString(),
@@ -346,19 +337,16 @@ public final class LoaderInstaller {
         try {
             Files.createDirectories(log.getParent());
         } catch (IOException ignored) {
-            // 日志目录建不出来也无所谓
         }
         ProcessBuilder builder = new ProcessBuilder(command)
                 .directory(root.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.to(log.toFile()));
         Process process = builder.start();
-        // 输出必须读掉，否则安装器会卡在写满的管道上
         Thread drain = new Thread(() -> {
             try (var in = process.getInputStream()) {
                 in.transferTo(OutputStream.nullOutputStream());
             } catch (Exception ignored) {
-                // 安装器日志不重要
             }
         }, "yi-loader-installer-log");
         drain.setDaemon(true);
@@ -399,7 +387,6 @@ public final class LoaderInstaller {
                 return best;
             }
         } catch (Exception ignored) {
-            // 探测失败就用当前运行时
         }
         boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
         Path java = Path.of(System.getProperty("java.home"), "bin", windows ? "java.exe" : "java");
@@ -478,7 +465,6 @@ public final class LoaderInstaller {
         IOException last = null;
         for (String url : urls) {
             try {
-                // 每个地址都套硬超时：镜像卡住要能立刻换下一个
                 return Remote.withDeadline("元数据", 20_000, () -> Remote.getText(url));
             } catch (IOException error) {
                 last = error;

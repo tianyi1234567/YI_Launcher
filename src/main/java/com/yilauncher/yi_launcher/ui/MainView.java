@@ -134,14 +134,12 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         glass.getStyleClass().add("glass");
         glass.setMinSize(940, 580);
 
-        // 底板层：背景渐变 + 外发光，缓存成位图后动画期间不再逐帧重算模糊
         backdrop.getStyleClass().add("glass-backdrop");
         backdrop.setMouseTransparent(true);
         backdrop.setCache(true);
         backdrop.setCacheHint(javafx.scene.CacheHint.SPEED);
 
         Pane blobs = buildBlobs();
-        // 柔光斑是静态的，也缓存起来（径向渐变逐帧重绘很贵）
         blobs.setCache(true);
         blobs.setCacheHint(javafx.scene.CacheHint.SPEED);
 
@@ -158,10 +156,8 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         buildResizeHandles();
         installDropTarget();
 
-        // 套用设置页保存的界面偏好（动画速度 / 不透明度 / 圆角）
         applySavedUi();
 
-        // Alt+F4 / 任务栏关闭也走同一套关窗动画，别只有 ✕ 才有动画
         stage.setOnCloseRequest(event -> {
             if (closing) {
                 return;
@@ -169,8 +165,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             event.consume();
             closeWindow();
         });
-        // 兜底：万一某一帧没收到 MOUSE_RELEASED（拖到窗外松手、切窗口等），
-        // 松开鼠标就结束拖动/缩放，别让位图缓存一直挂着
         addEventFilter(javafx.scene.input.MouseEvent.MOUSE_RELEASED, event -> {
             endDrag();
             endResize();
@@ -183,7 +177,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             return;
         }
         closing = true;
-        // 连底板一起淡出（底板不再是 glass 的一部分）
         Motion.windowClose(this, Platform::exit);
     }
 
@@ -318,7 +311,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             if (!resizing) {
                 return;
             }
-            // 只记最新坐标，真正改尺寸交给每帧一次的 resizeLoop
             resizePendingScreenX = e.getScreenX();
             resizePendingScreenY = e.getScreenY();
             e.consume();
@@ -397,7 +389,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
 
     /** 窗口级拖拽：拖 .zip 整合包 / .jar 模组进来播放遮罩，松手交给 DropInstall。 */
     private void installDropTarget() {
-        // 挂在 Scene 上：切到任何页面、拖到任何子控件上都还能收到拖拽事件
         sceneProperty().addListener((obs, oldScene, scene) -> {
             if (scene == null || scene == oldScene) {
                 return;
@@ -484,7 +475,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             if (pages.get("版本管理") instanceof VersionsPage page) {
                 page.reload();
             }
-            // 下载中心已经只剩「拖入安装 + 安装进度」，装完不需要额外刷新
         }));
     }
 
@@ -510,7 +500,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         overlayCard.getChildren().setAll(content);
         overlayRoot.setVisible(true);
         overlayRoot.toFront();
-        // 小面板跳出来：从 0.9 倍弹到原大小，带一点过冲
         Motion.popIn(overlayCard);
     }
 
@@ -522,7 +511,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         long token = ++overlayToken;
         Motion.popOut(overlayCard, 150, () -> {
             if (token != overlayToken) {
-                // 淡出期间又开了新面板，别把新的清掉
                 return;
             }
             overlayRoot.setVisible(false);
@@ -552,8 +540,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
     private void showPage(String name) {
         Node page = pages.get(name);
         if (page == null) {
-            // 延迟到第一次显示时才创建：页面在宿主已经拿到真实尺寸后再进场景，
-            // 可以避免 JavaFX 先按 0/无穷宽度排一次版、把内部控件的尺寸算坏。
             page = "启动".equals(name) ? new LaunchPage(this::openVersionSettings, this)
                     : "版本管理".equals(name) ? new VersionsPage(this)
                     : "模组管理".equals(name) ? new ModsPage(this)
@@ -563,18 +549,14 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             pages.put(name, page);
             page.getStyleClass().add("page");
         }
-        // 真的换页了才通知：同一个页面重复点不算「重新打开」，模组管理的淡入不会重播
         if (currentPage != null && currentPage != page && currentPage instanceof ModsPage mods) {
             mods.onHidden();
         }
         if (!pageHost.getChildren().contains(page) || pageHost.getChildren().size() != 1) {
-            // 只把当前页面留在场景里：残留页面会让 StackPane 拿到过大的最小尺寸，
-            // 进而把命中区域撑到侧边栏上，导致切页后左侧点不动。
             pageHost.getChildren().setAll(page);
         }
         page.setVisible(true);
         page.setManaged(true);
-        // 页面刚进场景时 JavaFX 会把焦点交给第一个输入框（搜索框），看起来像一直在输入
         Motion.pageIn(page);
         page.setFocusTraversable(true);
         Platform.runLater(page::requestFocus);
@@ -658,7 +640,7 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         ImageView icon = new ImageView(new Image(url.toExternalForm()));
         icon.setFitWidth(34);
         icon.setFitHeight(34);
-        icon.setSmooth(false); // 16×16 像素贴图放大时保持像素风
+        icon.setSmooth(false);
         Rectangle clip = new Rectangle(34, 34);
         clip.setArcWidth(20);
         clip.setArcHeight(20);
@@ -673,7 +655,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         logo.setPrefSize(34, 34);
         logo.setMaxSize(34, 34);
 
-        // 只留品牌名与版本角标，标题栏不再放「Minecraft Launcher · 玻璃主题预览」小字。
         VBox names = new VBox(-1, Ui.label("衣启动器", "brand-title"));
         names.setAlignment(Pos.CENTER_LEFT);
         names.setMaxHeight(Region.USE_PREF_SIZE);
@@ -708,7 +689,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             if (isInsideControl(e.getTarget())) {
                 return;
             }
-            // 双击标题栏最大化 / 还原（放在 maximized 判断之前，最大化状态下也能双击还原）
             if (e.getClickCount() >= 2) {
                 toggleMaximize();
                 return;
@@ -717,14 +697,11 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
                 return;
             }
 
-            // 首选：让 Windows 自己搬窗口（SendMessage 会阻塞到松手）。
-            // 这样拖动期间 JavaFX 完全不重绘，弱显卡上也不会掉到 30 帧。
             try {
                 if (NativeDrag.startMove(stage)) {
                     return;
                 }
             } catch (Throwable ignored) {
-                // JNA 缺失 / 系统调用失败：走下面的逐帧方案
             }
             dragging = true;
             dragAnchorStageX = stage.getX();
@@ -734,7 +711,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
 
             dragPendingScreenX = dragAnchorScreenX;
             dragPendingScreenY = dragAnchorScreenY;
-            // 回退方案：拖动时整块内容缓存成位图，每帧只要平移
             glass.setCache(true);
             glass.setCacheHint(javafx.scene.CacheHint.SPEED);
             dragLoop.start();
@@ -743,8 +719,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             if (!dragging) {
                 return;
             }
-            // 高回报率鼠标一秒能发上千个事件；这里只记最新坐标，
-            // 真正移动窗口交给 dragLoop 每帧一次，窗口才不会越拖越飘。
             dragPendingScreenX = e.getScreenX();
             dragPendingScreenY = e.getScreenY();
         });
@@ -755,7 +729,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         if (!dragging) {
             return;
         }
-        // 松手前把最后一帧没落地的位移补上
         double x = Math.round(dragAnchorStageX + (dragPendingScreenX - dragAnchorScreenX));
         double y = Math.round(dragAnchorStageY + (dragPendingScreenY - dragAnchorScreenY));
         stage.setX(x);
@@ -815,7 +788,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
     /* ============================ 左侧导航 ============================ */
 
     private Node buildSidebar() {
-        // 侧栏：上半是导航，下半是账户卡（卡片要放下头像 + 名字 + 登录方式，所以比图标栏宽）
         VBox sidebar = new VBox();
         sidebar.getStyleClass().add("sidebar");
         sidebar.setPrefWidth(152);
@@ -823,7 +795,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         sidebar.setMaxWidth(152);
 
         VBox accountNav = navRow("账户", Icons.USER, false, null);
-        // 「账户」不切页面，直接弹出账户面板
         accountNav.setOnMouseClicked(e -> openAccountDialog());
         sidebar.getChildren().addAll(
                 navRow("启动", Icons.HOME, true, null),
@@ -834,7 +805,6 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
                 accountNav,
                 navRow("设置", Icons.SLIDERS, false, null));
 
-        // 下载中心的小红点：显示「正在安装 / 下载」的任务数，没任务就整个藏起来
         if (lastBadge != null) {
             downloadBadge = lastBadge;
             downloadBadge.textProperty().bind(

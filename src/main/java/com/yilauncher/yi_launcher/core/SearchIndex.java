@@ -88,7 +88,6 @@ public final class SearchIndex {
                     .forEach(path -> hits.add(new Hit(kind, path.getFileName().toString(),
                             dir.getFileName() + " · " + sizeText(path), null, path)));
         } catch (IOException ignored) {
-            // 目录读不了就当没结果，不打断搜索
         }
     }
 
@@ -103,7 +102,6 @@ public final class SearchIndex {
                     .forEach(path -> hits.add(new Hit("存档", path.getFileName().toString(),
                             "saves · 存档目录", null, path)));
         } catch (IOException ignored) {
-            // 同上
         }
     }
 
