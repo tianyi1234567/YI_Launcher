@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ GameAssets.java —— 补齐客户端与资源
- *  做什么：缺客户端 jar 就下，缺资源 objects 就按 hash 并行补（已存在直接跳过）。
- *  谁在用：LoaderInstaller（装整合包 / 加载器前先把底子铺好）。
- *  入口：ensureClient()、ensureObjects()、sha1()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

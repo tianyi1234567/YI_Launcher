@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ JavaRuntimes.java —— Java 运行时扫描
- *  做什么：找出机器上可用的 java.exe（常见安装目录 + 启动器自带），读出大版本号并按需挑选。
- *  谁在用：GameLaunch（选启动用的 java）、LoaderInstaller（跑安装器）、VersionsPage（java 下拉）。
- *  入口：all()、pick(版本需求)、probe(java 路径)、majorOf()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.BufferedReader;
@@ -39,7 +33,6 @@ public final class JavaRuntimes {
     private JavaRuntimes() {
     }
 
-/* ============================ 对外：枚举 / 挑选 / 探测 ============================ */
     public static synchronized List<JavaRuntime> all(Path minecraftRoot) {
         if (cache != null) {
             return cache;
@@ -117,7 +110,6 @@ public final class JavaRuntimes {
         }
     }
 
-/* ============================ 版本号解析 ============================ */
     private static int majorOf(String version) {
         if (version.startsWith("1.")) {
             String[] parts = version.split("\\.");
@@ -135,7 +127,6 @@ public final class JavaRuntimes {
         }
     }
 
-/* ============================ 扫描来源：启动器自带 / 环境变量 / 常见安装目录 ============================ */
     private static void collectBundled(Path root, Set<Path> out) {
         Path runtimeDir = root.resolve("runtime");
         if (!Files.isDirectory(runtimeDir)) {

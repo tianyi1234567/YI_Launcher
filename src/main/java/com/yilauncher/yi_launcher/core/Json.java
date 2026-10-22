@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ Json.java —— 极简 JSON
- *  做什么：手写递归下降解析器（对象/数组/字符串/数字/布尔/null）+ 取值小工具，不引第三方库。
- *  谁在用：所有读写 json 的类（LauncherConfig、VersionsScanner、PackInstaller、AuthClients…）。
- *  入口：parse(text)、map()、list()、string()、integer()、bool()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.util.ArrayList;

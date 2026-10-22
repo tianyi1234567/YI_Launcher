@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ VersionsScanner.java —— 版本目录扫描
- *  做什么：遍历 versions/，读每个 json 得出 loader、游戏版本、需要的 Java、模组数、体积、时间。
- *  谁在用：LauncherEngine.scanAsync()（界面上的版本列表全部来自这里）。
- *  入口：scan(root, group)、detectLoader()、readJavaMajor()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;
@@ -23,7 +17,6 @@ public final class VersionsScanner {
     private VersionsScanner() {
     }
 
-/* ============================ 对外入口 ============================ */
     public static List<VersionEntry> scan(Path root) {
         return scan(MinecraftRoot.versions(root), root);
     }
@@ -60,7 +53,6 @@ public final class VersionsScanner {
         return versions;
     }
 
-/* ============================ 读单个版本目录 ============================ */
     private static VersionEntry read(Path root, Path dir, String folder, Path jsonFile) throws IOException {
         Map<String, Object> json = Json.map(Json.parse(Files.readString(jsonFile)));
 
@@ -88,7 +80,6 @@ public final class VersionsScanner {
 
     /* ============================ 细节 ============================ */
 
-/* ============================ 从 json 推断 Java / 加载器 ============================ */
     private static int readJavaMajor(Map<String, Object> json) {
         Map<String, Object> javaVersion = Json.map(json.get("javaVersion"));
         int major = Json.integer(javaVersion, "majorVersion", 0);
@@ -137,8 +128,6 @@ public final class VersionsScanner {
             entry.loaderVersion = "";
         }
     }
-
-/* ============================ 统计与工具 ============================ */
 
     /** 从 maven 坐标里取加载器版本号，例如 net.fabricmc:fabric-loader:0.16.9。 */
     private static String libraryVersion(List<Object> libraries, String keyword) {

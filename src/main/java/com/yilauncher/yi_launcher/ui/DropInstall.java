@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ DropInstall.java —— 拖文件安装
- *  做什么：判断拖进来的是整合包还是模组 → 弹二次确认（名称 / 分组 / 装到哪个版本）→ 真正安装。
- *  谁在用：MainView.installDropTarget()（窗口级拖放）。
- *  入口：handle(文件列表)、confirmPack()、confirmMods()、unknown()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.LauncherEngine;

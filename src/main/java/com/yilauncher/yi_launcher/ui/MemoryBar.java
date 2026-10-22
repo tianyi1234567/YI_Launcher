@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ MemoryBar.java —— 自绘内存条
- *  做什么：每 1 GB 一刻度；黄色=系统已用、青绿=分给游戏、灰=空闲；点击/拖动改分配值。
- *  谁在用：VersionsPage 的内存设置区（不用 JavaFX Slider，避免轨道被撑出对话框）。
- *  入口：configure(总量, 已用, 上限)、setValue(mb)、valueProperty()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.beans.property.IntegerProperty;

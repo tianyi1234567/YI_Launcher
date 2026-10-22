@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ VersionGroup.java —— 版本分组
- *  做什么：导入的每个文件夹算一个分组，启动器自己的 .minecraft 是内置「默认分组」；
- *          开启版本隔离的文件夹单独成组。
- *  谁在用：LauncherEngine、VersionsPage、MainView、GamePicker、DropInstall、VersionEntry。
- *  入口：builtin()、fromFolder()、countVersions()、isolationText()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.nio.file.Files;

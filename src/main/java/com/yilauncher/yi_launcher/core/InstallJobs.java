@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ InstallJobs.java —— 安装任务计数
- *  做什么：一个可被界面监听的计数器，装/下任务开始时 +1、结束 -1。
- *  谁在用：DropInstall、MainView（侧栏「下载中心」小红点，0 就隐藏）。
- *  入口：begin()、finish()、active()（读计数）、count()、reset()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import javafx.beans.property.ReadOnlyIntegerProperty;

@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ CfWidget.java —— CurseForge 免密钥通道
- *  做什么：靠 cfwidget 公开镜像拿项目标题/图标，以及「文件 id → 文件名 → CDN 地址」。
- *  谁在用：Mirrors（拼下载源）、ModIdentity（认模组）、PackInstaller、PackDownloader。
- *  入口：byId()、bySlug()、fileName()、cdnUrl()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

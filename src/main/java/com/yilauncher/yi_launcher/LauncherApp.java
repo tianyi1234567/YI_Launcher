@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · 入口层 ｜ LauncherApp.java —— 应用启动
- *  做什么：建透明无边框窗口、挂 glass.css、摆居中、放开窗动效。
- *  谁在用：javafx:run / jlink 的 mainClass（pom.xml 里指定的就是它）。
- *  入口：main()（关 LCD 抗锯齿后 launch）、start(Stage)、maybeWriteShot（自检截图）。
- * ========================================================================== */
 package com.yilauncher.yi_launcher;
 
 import com.yilauncher.yi_launcher.ui.MainView;

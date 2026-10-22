@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ ModrinthApi.java —— Modrinth 接口
- *  做什么：按 jar 的 sha1 批量换回「项目 + 版本 + 图标」，也支持按 slug/搜索取项目。
- *  谁在用：ModIdentity（本地认不出 CurseForge 时的第二选择）。
- *  入口：versionsBySha1()、projects()、latestVersion()、searchFirst()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.util.ArrayList;

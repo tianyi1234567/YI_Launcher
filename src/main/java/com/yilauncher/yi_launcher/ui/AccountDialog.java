@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ AccountDialog.java —— 账户面板
- *  做什么：三种登录表单（微软 / 离线 / LittleSkin）、切换与删除账户，成功后回调宿主刷新。
- *  谁在用：MainView 左下角账户卡（openAccountDialog）。
- *  入口：create(...)、build()、offlineForm()、littleSkinForm()、microsoftForm()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.Account;

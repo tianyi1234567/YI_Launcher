@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ PackDownloader.java —— 整合包文件下载
- *  做什么：先把清单里的文件名/地址/体积并行解析出来，再并行下载（进度按字节算），
- *          第一轮失败的会在最后统一补一轮。
- *  谁在用：PackInstaller.installPack()。
- *  入口：downloadAll()、resolve()、extractMods()（从 overrides/mods 取 jar）。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

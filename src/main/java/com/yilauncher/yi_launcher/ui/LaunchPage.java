@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ LaunchPage.java —— 启动页（首页）
- *  做什么：版本胶囊 + 大启动按钮、内联搜索、系统监控、最近启动、右侧信息栏与公告。
- *  谁在用：MainView（左侧导航「启动」）。
- *  入口：buildMain()、launch()（点「启动」）、refresh()、refreshStats()、rebuildRecent()。
- *  分段：主区域 ｜ 搜索模式 ｜ 系统监控 ｜ 最近启动 ｜ 右侧信息栏 ｜ 公告·历史更新记录。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.LauncherEngine;

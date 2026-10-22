@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ DownloadsPage.java —— 下载中心页
- *  做什么：默认显示「拖入安装」卡；有安装任务时换成进度卡（逐文件进度 + 失败行）。
- *  谁在用：MainView（左侧导航「下载中心」）、DropInstall（推送安装进度）。
- *  入口：build()、beginPack()、pushProgress()、pushError()、finishPack()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.animation.PauseTransition;

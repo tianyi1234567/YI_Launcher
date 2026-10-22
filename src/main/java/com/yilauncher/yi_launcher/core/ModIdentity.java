@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ ModIdentity.java —— 模组识别
- *  做什么：先读 jar 内的本地元数据，再联网认「这是哪个项目」：先 CurseForge，认不出再 Modrinth。
- *  谁在用：ModsPage（模组列表的名字、图标、链接）。
- *  入口：scan(dir)、local(jar)、enrich()、byCurseForge()、byModrinth()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.InputStream;
@@ -46,8 +40,6 @@ public final class ModIdentity {
 
     private ModIdentity() {
     }
-
-/* ============================ 本地：扫目录 + 读 jar 元数据 ============================ */
 
     /** 扫一个 mods 目录，读出每个 jar 的本地元数据。 */
     public static List<LocalMod> scan(Path modsDir) {
@@ -154,8 +146,6 @@ public final class ModIdentity {
         byModrinth(mods, pending, onOne);
     }
 
-/* ============================ 联网认领：先 CurseForge，认不出再 Modrinth ============================ */
-
     /**
      * CurseForge：先用 modid 猜 slug（可信），再用名字猜。
      * <p>名字猜出来的必须跟项目标题对得上——否则「Random Junk」这种名字会撞到同名的无关项目。</p>
@@ -250,8 +240,6 @@ public final class ModIdentity {
                     new Remote(PackInstaller.MODRINTH, title, icon, page, versionNumber));
         }
     }
-
-/* ============================ 小工具 ============================ */
 
     /** 用项目名去 CF 换一张 JavaFX 能解的图标（找不到就空着，界面回退到首字母）。 */
     private static String cfIcon(String title) {

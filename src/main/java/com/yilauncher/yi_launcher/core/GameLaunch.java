@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ GameLaunch.java —— 启动游戏
- *  做什么：跟着 inheritsFrom 继承链合并版本 json，过滤 libraries、解压 natives、
- *          替换变量，最后拉起游戏进程并写一份启动日志。
- *  谁在用：LauncherEngine.launchAsync（点「启动」）。
- *  入口：launch()、compile()（拼命令）、download()（补库）、variables()（离线账户参数）。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.File;

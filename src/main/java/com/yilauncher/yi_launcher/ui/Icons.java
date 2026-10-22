@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ Icons.java —— 线性图标
- *  做什么：24×24 视窗的 SVG 路径常量（HOME / PLAY / CLOSE …），path()/icon() 拼成节点。
- *  谁在用：MainView、LaunchPage、VersionsPage、SettingsPage、Ui（按钮上的图标）。
- *  入口：各图标常量、path(data, styleClass)、icon(data, size, styleClass)。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.scene.layout.StackPane;

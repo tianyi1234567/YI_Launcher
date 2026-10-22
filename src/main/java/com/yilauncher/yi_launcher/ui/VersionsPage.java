@@ -1,11 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ VersionsPage.java —— 版本管理页
- *  做什么：左侧分组轨道 + 版本列表（筛选 / 搜索 / 折叠动画），右侧版本详情与运行设置
- *          （改名、内存、Java、窗口、版本隔离），以及新增/导入/删除等弹窗。
- *  谁在用：MainView（左侧导航「版本」）。
- *  入口：buildToolbar()、buildBody()、showDetail()、launch()、openAddVersionDialog()。
- *  分段：顶部工具条 ｜ 主体（分组轨道 + 版本列表）｜ 详情面板 ｜ 启动·文件 ｜ 弹窗。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.Accents;

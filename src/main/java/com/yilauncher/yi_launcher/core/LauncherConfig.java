@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ LauncherConfig.java —— 配置持久化
- *  做什么：config.json 的读写（界面偏好、上次的分组/版本、导入的分组、每个版本的各种设置）。
- *  谁在用：LauncherEngine（选中项）、MainView / SettingsPage（界面偏好）、AccountStore、AuthClients。
- *  入口：load()、save()、ui()、version()/setVersion 系列、groups()、selectedGroup()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;
@@ -96,7 +90,6 @@ public final class LauncherConfig {
         this.file = file;
     }
 
-/* ============================ 定位与加载 ============================ */
     public static Path defaultFile() {
         String override = System.getProperty("yi.config");
         if (override != null && !override.isBlank()) {
@@ -170,8 +163,6 @@ public final class LauncherConfig {
         return map.get(key) instanceof Number value ? value.doubleValue() : null;
     }
 
-/* ============================ 读取：当前选中项 / 分组 / 单版本设置 ============================ */
-
     /** 界面偏好（动画速度 / 不透明度 / 圆角）。 */
     public UiSettings ui() {
         return ui;
@@ -225,8 +216,6 @@ public final class LauncherConfig {
         groups.clear();
         groups.addAll(settings);
     }
-
-/* ============================ 落盘 ============================ */
 
     /** 把设置写回 json（体积很小，改一次写一次即可）。 */
     public synchronized void save() {
@@ -303,7 +292,6 @@ public final class LauncherConfig {
         return sb.toString();
     }
 
-/* ============================ JSON 拼装小工具 ============================ */
     private static void appendString(StringBuilder sb, String key, String value) {
         if (value != null) {
             sb.append(", ").append(quote(key)).append(": ").append(quote(value));

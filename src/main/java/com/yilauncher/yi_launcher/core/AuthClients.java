@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ AuthClients.java —— 登录客户端
- *  做什么：离线（本地算 uuid）、LittleSkin（Yggdrasil）、微软（设备代码流 → XSTS → MC 档案）。
- *  谁在用：AccountDialog；所有方法都阻塞，调用方必须丢到后台线程。
- *  入口：offline()、littleSkin()、microsoftStart()、microsoftWait()、skinFromProfile()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.net.URI;

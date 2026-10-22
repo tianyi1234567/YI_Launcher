@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ LauncherEngine.java —— 启动器内核（单例）
- *  做什么：持有 .minecraft 根、分组列表、扫描出的版本、当前选中项，是界面访问数据的唯一入口。
- *  谁在用：MainView、LaunchPage、VersionsPage、SettingsPage、ModsPage、GamePicker、DropInstall。
- *  入口：get()、groups()/group()、scanAsync()、select()、launchAsync()、recentPlayed()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.nio.file.Path;

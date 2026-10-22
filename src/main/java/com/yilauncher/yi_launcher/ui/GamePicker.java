@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ GamePicker.java —— 「选择游戏」面板
- *  做什么：先选分组、再点版本，点中即写进 config（chosenVersion）并回调刷新启动页。
- *  谁在用：LaunchPage 的版本胶囊、ModsPage、VersionsPage。
- *  入口：create(overlay, onPicked)。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.Accents;

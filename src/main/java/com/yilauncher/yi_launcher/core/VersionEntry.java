@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ VersionEntry.java —— 单个版本的数据模型
- *  做什么：扫描结果（loader、游戏版本、Java、模组数、占用、时间）+ 用户可改的运行设置
- *          （改名、内存、配色、Java、窗口尺寸、版本隔离），并负责把设置落盘。
- *  谁在用：LauncherEngine、VersionsPage、LaunchPage、ModsPage、GameLaunch、GamePicker、DropInstall。
- *  入口：effectiveMemory()、refreshMemory()、launchArgs()、loaderText()、subtitle()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.nio.file.Path;

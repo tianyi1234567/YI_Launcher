@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ SearchIndex.java —— 启动页搜索
- *  做什么：在版本列表和 .minecraft 常见目录（mods / saves / resourcepacks …）里按名字找东西。
- *  谁在用：LaunchPage 的搜索模式（纯文件操作，调用方丢后台线程）。
- *  入口：search(关键词)。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

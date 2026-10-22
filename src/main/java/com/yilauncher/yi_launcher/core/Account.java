@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ Account.java —— 账户数据模型
- *  做什么：一条账户记录（类型 / 名字 / uuid / 令牌 / 皮肤地址）+ Kind 枚举。
- *  谁在用：AccountStore（存取）、AuthClients（登录结果）、AccountDialog、MainView、GameLaunch。
- *  入口：Kind、key()（同账号重复登录的覆盖依据）、kindLabel()、shortUuid()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 /** 一个登录过的账户：正版（微软）/ 离线 / LittleSkin 皮肤站。 */

@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ Mirrors.java —— 下载镜像链
- *  做什么：CF 文件走 cfwidget → MCIM，Mojang 资源走官方 → bmclapi；每个源先试两次再换。
- *  谁在用：GameAssets、PackDownloader、LoaderInstaller（所有实际下载都从这里挑源）。
- *  入口：download()、cfFileUrl()、modrinthFileUrl()、mavenMirror()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

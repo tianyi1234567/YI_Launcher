@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ MemoryRecommendation.java —— 内存推荐
- *  做什么：按模组数量分档（≤150 → 6 GB，150~300 → 8 GB，≥300 → 12 GB）并给一句理由。
- *  谁在用：VersionEntry.refreshMemory()、LaunchPage 状态栏、VersionsPage 内存弹窗。
- *  入口：forMods()、reason()、asText()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 /**

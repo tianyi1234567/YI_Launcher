@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ SceneShot.java —— 开发自检截图
- *  做什么：把场景离屏渲染成 24 位 BMP（叠在指定底色上看半透明/圆角），并导出布局树文本。
- *  谁在用：LauncherApp.maybeWriteShot()，仅在 -Dyi.shot=... 时执行。
- *  入口：write(scene, 路径, 底色)、describe(scene)、hitTest()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.scene.Scene;

@@ -1,11 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ MainView.java —— 窗口外壳
- *  做什么：透明圆角玻璃、标题栏（拖窗 / 最小化 / 最大化 / 关闭）、左侧导航、页面容器、
- *          贴边拖大、窗口级拖放安装、遮罩弹窗层，并负责界面偏好（不透明度 / 圆角 / 动效速度）。
- *  谁在用：LauncherApp 把它当根节点；各页面反过来调它（selectPage / openVersionSettings / show）。
- *  入口：selectPage()、buildTitleBar()、buildSidebar()、buildOverlay()、installDropTarget()。
- *  分段：界面偏好 ｜ 边框拖动改大小 ｜ 拖拽安装 ｜ 弹窗层 ｜ 玻璃柔光 ｜ 标题栏 ｜ 左侧导航 ｜ 小工具。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.LauncherConfig;

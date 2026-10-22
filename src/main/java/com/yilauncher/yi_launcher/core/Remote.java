@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ Remote.java —— 联网底座
- *  做什么：统一 UA / 超时 / 重定向；下载先写临时文件再原子改名；withDeadline 提供硬超时。
- *  谁在用：CfWidget、ModrinthApi、Mirrors、GameAssets、LoaderInstaller、PackInstaller、ModsPage。
- *  入口：getText()、postJson()、download()、withDeadline()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

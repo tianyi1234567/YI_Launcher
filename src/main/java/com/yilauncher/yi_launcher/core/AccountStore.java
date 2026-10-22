@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ AccountStore.java —— 账户仓库
- *  做什么：读写配置目录下的 accounts.json，维护「当前选中账户」，算离线 UUID。
- *  谁在用：AccountDialog（登录/切换/删除）、MainView（左下角账户卡）、GameLaunch（取令牌与 uuid）。
- *  入口：get()、accounts()、selectedOrGuest()、put()、select()、remove()、save()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.nio.charset.StandardCharsets;
@@ -24,7 +18,6 @@ public final class AccountStore {
 
     private static AccountStore instance;
 
-/* ============================ 单例与对外读写 ============================ */
     public static synchronized AccountStore get() {
         if (instance == null) {
             instance = new AccountStore();
@@ -109,7 +102,7 @@ public final class AccountStore {
         save();
     }
 
-/* ============================ 落盘：accounts.json ============================ */
+    /* ============================ 读写 ============================ */
 
     @SuppressWarnings("unchecked")
     private void load() {
@@ -168,7 +161,6 @@ public final class AccountStore {
         }
     }
 
-/* ============================ JSON 小工具 ============================ */
     private static String nullToEmpty(String value) {
         return value == null ? "" : value;
     }

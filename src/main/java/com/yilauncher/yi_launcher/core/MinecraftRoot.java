@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ MinecraftRoot.java —— 定位 .minecraft
- *  做什么：按系统猜出 .minecraft 路径（可用 -Dyi.minecraftDir 覆盖），并给出各子目录。
- *  谁在用：LauncherEngine、VersionsScanner、VersionGroup、GameLaunch、JavaRuntimes。
- *  入口：resolve()、versions(root)、libraries(root)、assets(root)。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.nio.file.Files;

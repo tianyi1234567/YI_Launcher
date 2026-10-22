@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ SystemMonitor.java —— 系统占用
- *  做什么：读 CPU 占用率与总/已用/空闲内存；优先 com.sun.management，取不到退回 JVM 数据。
- *  谁在用：LaunchPage 的系统监控卡、VersionsPage（内存推荐与进度条上限）。
- *  入口：cpuLoad()、totalMemory()、usedMemory()、freeMemory()、toGb()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.sun.management.OperatingSystemMXBean;

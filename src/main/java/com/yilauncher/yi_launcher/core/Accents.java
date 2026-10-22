@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ Accents.java —— 版本配色
- *  做什么：8 套预置强调色（含中文名）；随机取一套给新导入的版本，并提供调深/转 rgba。
- *  谁在用：VersionsPage（列表与详情同色）、GamePicker、VersionsScanner。
- *  入口：PALETTE、random()、shade(hex, factor)、rgba(hex, alpha)。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.util.Locale;

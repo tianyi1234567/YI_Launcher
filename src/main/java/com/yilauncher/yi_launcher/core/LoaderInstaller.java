@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ LoaderInstaller.java —— 补加载器
- *  做什么：让整合包真的能启动——缺原版 json 就补，Fabric/Quilt 取官方档案，
- *          Forge/NeoForge 无头跑安装器；返回「该 inheritsFrom 哪个版本 id」。
- *  谁在用：PackInstaller（装完整合包后的最后一步）。
- *  入口：ensure()、installFromMeta()、latestLoader()、runInstaller()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

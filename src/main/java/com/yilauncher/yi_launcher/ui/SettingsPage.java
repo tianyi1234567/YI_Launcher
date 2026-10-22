@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ SettingsPage.java —— 设置页
- *  做什么：动效速度 / 界面不透明度 / 窗口圆角三张卡，点一下立刻生效并写进 config 的 ui 段。
- *  谁在用：MainView（左侧导航「设置」）。
- *  入口：buildBody()、appearanceCard()、accountCard()、aboutCard()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.LauncherConfig;

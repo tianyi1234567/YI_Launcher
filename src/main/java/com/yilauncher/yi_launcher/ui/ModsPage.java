@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ ModsPage.java —— 模组管理页
- *  做什么：列出当前版本的模组 jar，联网认领 CurseForge / Modrinth 项目信息，行只在进页时淡入一次。
- *  谁在用：MainView（左侧导航「模组」）。
- *  入口：build()、refresh()、load()、openPicker()（换版本）。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.yilauncher.yi_launcher.core.LauncherEngine;

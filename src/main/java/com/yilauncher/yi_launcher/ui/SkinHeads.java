@@ -1,9 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ SkinHeads.java —— 账户头像
- *  做什么：从皮肤图 (8,8) 起的 8×8 脸用最近邻放大，避免小头像糊；没皮肤时画内置史蒂夫。
- *  谁在用：MainView 账户卡、AccountDialog（账户列表与当前账户）。
- *  入口：avatar(skinUrl, size)、setSkin()、localHead()、drawnSteve()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.application.Platform;
@@ -52,8 +46,6 @@ public final class SkinHeads {
 
     private SkinHeads() {
     }
-
-/* ============================ 本地头像（没皮肤时画史蒂夫） ============================ */
 
     /** 资源里的本地头像；读不到就退回代码画的史蒂夫。 */
     public static synchronized Image localHead() {
@@ -107,8 +99,6 @@ public final class SkinHeads {
         return drawn;
     }
 
-/* ============================ 最近邻裁脸放大 ============================ */
-
     /**
      * 把皮肤图的「脸」按最近邻放大成 size×size。
      * <p>整张皮肤（宽 ≥ 64）取 (8·s, 8·s) 起的 8·s 方块，s = 宽 / 64；
@@ -161,8 +151,6 @@ public final class SkinHeads {
         }
         return Math.min(value, limit);
     }
-
-/* ============================ 网络皮肤：后台下载再换图 ============================ */
 
     /** 头像节点：固定尺寸、圆角裁切，皮肤没下好时先显示本地史蒂夫。 */
     public static SkinAvatar avatar(String skinUrl, int size) {

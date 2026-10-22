@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · core 层 ｜ PackInstaller.java —— 整合包 / 模组安装
- *  做什么：认出 .zip 是 CF 还是 Modrinth 整合包，解到「分组目录/包名/」（overrides 原样铺开、
- *          写一份继承版本 json），认出 .jar 是模组并装进当前版本。
- *  谁在用：DropInstall（拖文件）、ModsPage（刷新模组列表）；工具方法也给 PackDownloader 用。
- *  入口：inspect()、installPack()、installMod()、installedMods()、versionJson()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.core;
 
 import java.io.IOException;

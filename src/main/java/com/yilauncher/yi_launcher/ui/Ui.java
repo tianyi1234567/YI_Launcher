@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ Ui.java —— 页面公共零件
- *  做什么：Label / 弹性占位 / 行容器 / 幽灵按钮 / 主按钮 / 单选组等样板，省得每个页面重写。
- *          内部还定义了弹窗宿主接口 OverlayHost（由 MainView 实现）。
- *  谁在用：所有页面与对话框。
- *  入口：label()、spacer()、row()、ghostButton()、primaryButton()、selectOne()。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import javafx.animation.PauseTransition;

@@ -1,10 +1,3 @@
-/* ==========================================================================
- *  衣启动器 · ui 层 ｜ NativeDrag.java —— 原生窗口拖动
- *  做什么：用 Win32 的 SendMessage(WM_NCLBUTTONDOWN, HTCAPTION) 让系统搬窗口，
- *          避免逐帧改 stage 坐标；非 Windows / JNA 不可用时返回 false 由调用方回退。
- *  谁在用：MainView.installWindowDrag()（标题栏与空白处按下）。
- *  入口：supported()、startMove(stage)、syncPosition(stage)（位移后同步 JavaFX 侧的坐标）。
- * ========================================================================== */
 package com.yilauncher.yi_launcher.ui;
 
 import com.sun.jna.Native;
