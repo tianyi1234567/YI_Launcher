@@ -252,12 +252,13 @@ public final class LoaderInstaller {
         Files.createDirectories(work);
         Path jar = work.resolve((neo ? "neoforge-" : "forge-") + loaderVersion + "-installer.jar");
         List<Mirrors.Source> sources = new ArrayList<>();
-        sources.add(new Mirrors.Source(neo ? "NeoForge" : "Forge", installerUrl));
         String mirror = Mirrors.mavenMirror(installerUrl);
         if (!mirror.isBlank()) {
             sources.add(new Mirrors.Source((neo ? "NeoForge" : "Forge") + "·镜像", mirror));
         }
-        Mirrors.download(jar, sources, null);
+        sources.add(new Mirrors.Source(neo ? "NeoForge" : "Forge", installerUrl));
+        // 安装器本体也别死等：单个源 3 分钟还没下完就换下一个（镜像排在前面）
+        Mirrors.download(jar, sources, null, 180_000L);
 
         Path profiles = root.resolve("launcher_profiles.json");
         if (!Files.isRegularFile(profiles)) {
@@ -265,19 +266,67 @@ public final class LoaderInstaller {
                     StandardCharsets.UTF_8);
         }
 
-        if (progress != null) {
-            progress.update("运行 " + (neo ? "NeoForge" : "Forge") + " 安装器（要几分钟）", 0.6);
+        String loaderName = neo ? "NeoForge" : "Forge";
+        boolean done = false;
+        // 第一轮：镜像版安装器（库地址已改到 bmclapi），最多 3 分钟
+        Path mirrorJar = mirrorPatched(jar);
+        if (!mirrorJar.equals(jar)) {
+            if (progress != null) {
+                progress.update("用镜像安装 " + loaderName + "（最多 3 分钟）", 0.6);
+            }
+            try {
+                runInstaller(root, mirrorJar, 3);
+            } catch (IOException mirrorFailed) {
+                // 镜像没成，下面换官方源
+            }
+            done = installed(versionsDir, expectedId, loaderVersion);
         }
-        int code = runInstaller(root, jar);
+        // 第二轮：官方安装器，同样最多 3 分钟
+        if (!done) {
+            // 半成品目录会让安装器以为「已经装过」，先清掉再换官方源
+            deletePartial(versionsDir.resolve(expectedId));
+            if (progress != null) {
+                progress.update(loaderName + " 镜像没装完，改用官方源（最多 3 分钟）", 0.7);
+            }
+            try {
+                runInstaller(root, jar, 3);
+            } catch (IOException officialFailed) {
+                // 官方也不行，下面统一报「无法下载…请重试」
+            }
+            done = installed(versionsDir, expectedId, loaderVersion);
+        }
         String found = Files.isRegularFile(versionsDir.resolve(expectedId).resolve(expectedId + ".json"))
                 ? expectedId : locateLoaderVersion(versionsDir, loaderVersion);
-        if (found.isBlank()) {
-            throw new IOException("加载器安装器结束（返回 " + code + "），但没找到它生成的版本");
+        if (!done || found.isBlank()) {
+            throw new IOException("无法下载 " + loaderName + " " + loaderVersion + " 加载器，请重试");
         }
+        // 安装器只会写 json，不会给版本目录放启动 jar；原版启动器会放一份原版 jar 的副本
+        ensureVersionJar(versionsDir, found, mcVersion);
         if (progress != null) {
             progress.update("加载器就绪：" + found, 0.9);
         }
         return found;
+    }
+
+    /**
+     * Forge / NeoForge 的 jvm 参数里 {@code -DignoreList=…<版本 id>.jar} 只认同名 jar；
+     * 缺了它 Bootstraplauncher 会把原版 jar 当额外模块，报
+     * {@code Module minecraft contains package net.minecraft.server …}。
+     */
+    private static void ensureVersionJar(Path versionsDir, String id, String mcVersion) {
+        Path target = versionsDir.resolve(id).resolve(id + ".jar");
+        if (Files.isRegularFile(target)) {
+            return;
+        }
+        Path source = versionsDir.resolve(mcVersion).resolve(mcVersion + ".jar");
+        if (!Files.isRegularFile(source)) {
+            return;
+        }
+        try {
+            Files.createDirectories(target.getParent());
+            Files.copy(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ignored) {
+        }
     }
 
     /**
@@ -327,7 +376,12 @@ public final class LoaderInstaller {
         }
     }
 
-    private static int runInstaller(Path root, Path jar) throws IOException {
+    /**
+     * 跑安装器，最多等 {@code minutes} 分钟。
+     * <p>Forge/NeoForge 安装器卡在下载库时会一直挂着不动，所以到点直接杀掉，
+     * 让上层换镜像再来一次——不能傻等 20 分钟。</p>
+     */
+    private static int runInstaller(Path root, Path jar, int minutes) throws IOException {
         Path runnable = jar;
         Path java = installerJava(root);
         List<String> command = List.of(java.toString(), "-jar", runnable.toString(),
@@ -352,9 +406,10 @@ public final class LoaderInstaller {
         drain.setDaemon(true);
         drain.start();
         try {
-            if (!process.waitFor(20, TimeUnit.MINUTES)) {
+            if (!process.waitFor(minutes, TimeUnit.MINUTES)) {
                 process.destroyForcibly();
-                throw new IOException("加载器安装超时");
+                process.waitFor(20, TimeUnit.SECONDS);
+                throw new IOException("加载器安装 " + minutes + " 分钟没完成");
             }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
@@ -362,6 +417,30 @@ public final class LoaderInstaller {
             throw new IOException("加载器安装被打断", error);
         }
         return process.exitValue();
+    }
+
+    /** 安装器是不是真的把版本 json 写出来了。 */
+    private static boolean installed(Path versionsDir, String expectedId, String loaderVersion) {
+        if (Files.isRegularFile(versionsDir.resolve(expectedId).resolve(expectedId + ".json"))) {
+            return true;
+        }
+        return !locateLoaderVersion(versionsDir, loaderVersion).isBlank();
+    }
+
+    /** 清掉半成品版本目录，免得安装器以为已经装好。 */
+    private static void deletePartial(Path dir) {
+        if (dir == null || !Files.isDirectory(dir)) {
+            return;
+        }
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException ignored) {
+                }
+            });
+        } catch (IOException ignored) {
+        }
     }
 
     /**

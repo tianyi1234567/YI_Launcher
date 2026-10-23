@@ -32,6 +32,10 @@ public final class DownloadsPage extends BorderPane {
     private final ProgressBar overallBar = bar();
     private final ProgressBar modsBar = bar();
     private final ProgressBar loaderBar = bar();
+    /** 三行下面那行小字：当前在干什么。 */
+    private final Label overallAction = Ui.label("", "progress-action");
+    private final Label modsAction = Ui.label("", "progress-action");
+    private final Label loaderAction = Ui.label("", "progress-action");
     private final Label overallTitle = Ui.label("总进度：安装整合包", "settings-label");
     private final Label modsTitle = Ui.label("线程：安装模组", "settings-label");
     private final Label loaderTitle = Ui.label("线程：安装模组加载器", "settings-label");
@@ -85,19 +89,20 @@ public final class DownloadsPage extends BorderPane {
     private void buildProgressCard() {
         progressCard.getChildren().addAll(
                 Ui.label("正在安装", "card-title"),
-                row(overallTitle, overallNote, overallBar),
-                row(modsTitle, modsNote, modsBar),
-                row(loaderTitle, loaderNote, loaderBar));
+                row(overallTitle, overallNote, overallBar, overallAction),
+                row(modsTitle, modsNote, modsBar, modsAction),
+                row(loaderTitle, loaderNote, loaderBar, loaderAction));
         progressCard.getStyleClass().addAll("card", "card-pad");
         progressCard.setVisible(false);
         progressCard.setManaged(false);
     }
 
-    private Node row(Label title, Label note, ProgressBar bar) {
+    private Node row(Label title, Label note, ProgressBar bar, Label action) {
         HBox head = new HBox(8, title, Ui.spacer(), note);
         head.setAlignment(Pos.CENTER_LEFT);
-        VBox box = new VBox(5, head, bar);
-        box.setPadding(new Insets(2, 0, 2, 0));
+        // 进度条下面再挂一行小字，说明这一路现在在干什么
+        VBox box = new VBox(4, head, bar, action);
+        box.setPadding(new Insets(2, 0, 4, 0));
         return box;
     }
 
@@ -119,6 +124,9 @@ public final class DownloadsPage extends BorderPane {
         modsTitle.setText("线程：安装模组");
         loaderTitle.setText("线程：安装 " + loaderLabel + " 加载器");
         setProgress(0, 0, 0, "准备中", "等待中", "等待中");
+        overallAction.setText("正在安装整合包");
+        modsAction.setText("正在解析模组地址");
+        loaderAction.setText("正在准备安装环境");
 
         Motion.translate(dropCard, 0, 22, 170, Motion.SOFT);
         Motion.opacity(dropCard, 0, 150, Motion.SOFT);
@@ -183,10 +191,27 @@ public final class DownloadsPage extends BorderPane {
 
     /** 线程回调（任意线程）：转回 FX 线程刷新三条进度。 */
     public void pushProgress(double overall, double mods, double loader, String note) {
-        Platform.runLater(() -> setProgress(overall, mods, loader,
-                String.format("总进度 %.0f%%", overall * 100),
-                String.format("%.0f%%", mods * 100),
-                String.format("%.0f%%", loader * 100)));
+        Platform.runLater(() -> {
+            setProgress(overall, mods, loader,
+                    String.format("总进度 %.0f%%", overall * 100),
+                    String.format("%.0f%%", mods * 100),
+                    String.format("%.0f%%", loader * 100));
+            if (note != null && !note.isBlank()) {
+                overallAction.setText(note);
+            }
+        });
+    }
+
+    /** 两路线各自的当前动作（来自安装线程）。 */
+    public void pushDetail(String modsText, String loaderText) {
+        Platform.runLater(() -> {
+            if (modsText != null && !modsText.isBlank()) {
+                modsAction.setText(modsText);
+            }
+            if (loaderText != null && !loaderText.isBlank()) {
+                loaderAction.setText(loaderText);
+            }
+        });
     }
 
     public void pushError(String message) {

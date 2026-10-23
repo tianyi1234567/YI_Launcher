@@ -818,25 +818,48 @@
     -fx-background-color: transparent;
 }
 
-.list-scroll .scroll-bar:vertical {
+/* 滚动条：12px 宽、圆角滑块，滚轮/拖动都看得见（之前只有 7px，像一根细线） */
+.list-scroll .scroll-bar:vertical,
+.list-scroll .scroll-bar:horizontal {
     -fx-background-color: transparent;
-    -fx-pref-width: 7px;
-    -fx-padding: 0 0 0 2px;
+    -fx-padding: 3px 2px 3px 2px;
 }
 
-.list-scroll .scroll-bar:vertical .track {
+.list-scroll .scroll-bar:vertical {
+    -fx-pref-width: 14px;
+    -fx-min-width: 14px;
+}
+
+.list-scroll .scroll-bar:horizontal {
+    -fx-pref-height: 14px;
+    -fx-min-height: 14px;
+    -fx-padding: 2px 3px 2px 3px;
+}
+
+.list-scroll .scroll-bar .track {
     -fx-background-color: transparent;
     -fx-border-color: transparent;
 }
 
-.list-scroll .scroll-bar:vertical .thumb {
-    -fx-background-color: rgba(70, 80, 104, 0.22);
+.list-scroll .scroll-bar:vertical .thumb,
+.list-scroll .scroll-bar:horizontal .thumb {
+    -fx-background-color: rgba(70, 80, 104, 0.30);
     -fx-background-radius: 999px;
+    -fx-background-insets: 0;
 }
 
-.list-scroll .scroll-bar:vertical .increment-button,
-.list-scroll .scroll-bar:vertical .decrement-button {
+.list-scroll .scroll-bar:vertical .thumb:hover,
+.list-scroll .scroll-bar:vertical .thumb:pressed,
+.list-scroll .scroll-bar:horizontal .thumb:hover,
+.list-scroll .scroll-bar:horizontal .thumb:pressed {
+    -fx-background-color: rgba(94, 108, 232, 0.58);
+}
+
+.list-scroll .scroll-bar .increment-button,
+.list-scroll .scroll-bar .decrement-button {
+    -fx-pref-width: 0;
     -fx-pref-height: 0;
+    -fx-padding: 0;
     -fx-opacity: 0;
 }
 
@@ -844,6 +867,7 @@
 .list-scroll .scroll-bar .decrement-arrow {
     -fx-shape: " ";
     -fx-padding: 0;
+}
 }
 
 .version-row {
@@ -1522,6 +1546,11 @@
     -fx-padding: 0;
 }
 
+.progress-action {
+    -fx-font-size: 10px;
+    -fx-text-fill: rgba(80, 90, 112, 0.62);
+}
+
 .progress-note {
     -fx-font-size: 10.5px;
     -fx-text-fill: -yi-ink-3;
@@ -1529,10 +1558,10 @@
 
 /* ---------------- 模组管理 ---------------- */
 
+/* 行背景在外层（内边距挪到内层），这样选中高亮才能铺满整行而不是只铺中间一条 */
 .mod-row {
     -fx-background-color: rgba(255, 255, 255, 0.62);
     -fx-background-radius: 14px;
-    -fx-padding: 9px 12px;
 }
 
 .mod-row:hover {
@@ -1577,4 +1606,215 @@
 .mod-chip.source-mr {
     -fx-background-color: rgba(28, 217, 133, 0.18);
     -fx-text-fill: #12805A;
+}
+
+/* ============================ 账户页（真页面 + 金光） ============================ */
+
+.account-card-title {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink-2;
+}
+
+/* 正版卡：暖金底 + 一道循环流动的亮光 */
+.account-hero {
+    -fx-background-radius: 26px;
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(255, 247, 228, 0.96),
+        rgba(255, 232, 187, 0.90) 55%,
+        rgba(255, 245, 224, 0.94));
+    -fx-border-radius: 26px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 214, 130, 0.92);
+    -fx-effect: dropshadow(gaussian, rgba(214, 162, 52, 0.20), 20, 0.05, 0, 5);
+}
+
+.gold-shine {
+    -fx-background-color: linear-gradient(to right,
+        rgba(255, 255, 255, 0.0),
+        rgba(255, 255, 255, 0.70) 35%,
+        rgba(255, 212, 116, 0.88) 58%,
+        rgba(255, 255, 255, 0.0));
+    -fx-opacity: 0.85;
+}
+
+/* 离线登录的补票提示：暖色小方框 + 两个选项 */
+.repay-box {
+    -fx-background-color: rgba(255, 236, 197, 0.92);
+    -fx-background-radius: 14px;
+    -fx-border-radius: 14px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 204, 118, 0.95);
+    -fx-padding: 10px 12px;
+}
+
+.repay-title {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #8A5A11;
+}
+
+.repay-buy {
+    -fx-background-color: rgba(255, 255, 255, 0.92);
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 194, 86, 0.95);
+    -fx-text-fill: #8A5A11;
+}
+
+.account-switch-row {
+    -fx-background-radius: 10px;
+    -fx-padding: 5px 8px;
+    -fx-cursor: hand;
+}
+
+.account-switch-row:hover {
+    -fx-background-color: rgba(108, 124, 255, 0.13);
+}
+
+/* ============================ 模组管理：过滤 / 选中 / 底部动作 ============================ */
+
+.mods-toolbar {
+    -fx-padding: 0 6px 0 0;
+}
+
+/* 选中高亮：整行铺一层蓝色（覆盖层，不占布局；只改透明度做动画，行不会变大） */
+.mod-row-hl {
+    -fx-background-color: linear-gradient(to right, rgba(108, 124, 255, 0.44), rgba(108, 124, 255, 0.26));
+    -fx-background-radius: 14px;
+    -fx-border-color: rgba(108, 124, 255, 0.62);
+    -fx-border-width: 1px;
+    -fx-border-radius: 14px;
+    -fx-effect: dropshadow(gaussian, rgba(86, 102, 240, 0.18), 10, 0.02, 0, 2);
+}
+
+/* 禁用行只是内容变淡，透明度留给动画用（不然 CSS 的 opacity 会把淡入动画顶掉） */
+
+.mod-chip-disabled {
+    -fx-background-color: rgba(120, 130, 150, 0.18);
+    -fx-text-fill: rgba(70, 80, 104, 0.72);
+}
+
+.mod-actions {
+    -fx-background-color: rgba(255, 255, 255, 0.86);
+    -fx-background-radius: 16px;
+    -fx-border-radius: 16px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.92);
+    -fx-padding: 8px 12px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.10), 16, 0.02, 0, 4);
+}
+
+.mod-actions-label {
+    -fx-font-size: 11.5px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.mod-site-btn {
+    -fx-font-size: 11.5px;
+    -fx-padding: 7px 14px;
+    -fx-background-radius: 11px;
+}
+
+/* ============================ 模组资源：四个彩色模块 + 搜索界面 ============================ */
+
+.resource-card {
+    -fx-background-radius: 22px;
+    -fx-border-radius: 22px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.10), 18, 0.02, 0, 5);
+}
+
+.resource-card:hover {
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.18), 22, 0.04, 0, 7);
+}
+
+/* 搜索 / 下载模组：淡黄 */
+.resource-card-mod {
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(255, 250, 222, 0.97),
+        rgba(255, 233, 163, 0.93));
+    -fx-border-color: rgba(240, 205, 108, 0.90);
+}
+
+/* 资源包：浅绿 */
+.resource-card-pack {
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(233, 251, 236, 0.97),
+        rgba(184, 238, 199, 0.92));
+    -fx-border-color: rgba(126, 202, 156, 0.90);
+}
+
+/* 光影包：浅紫 */
+.resource-card-shader {
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(243, 235, 255, 0.97),
+        rgba(214, 196, 255, 0.92));
+    -fx-border-color: rgba(172, 143, 240, 0.90);
+}
+
+/* 原版下载：浅蓝 */
+.resource-card-vanilla {
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(228, 243, 255, 0.97),
+        rgba(182, 219, 255, 0.93));
+    -fx-border-color: rgba(122, 180, 240, 0.90);
+}
+
+.resource-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -yi-ink-2;
+}
+
+.resource-sub {
+    -fx-font-size: 11px;
+    -fx-text-fill: rgba(70, 80, 104, 0.70);
+}
+
+.resource-icon {
+    -fx-stroke: rgba(70, 80, 104, 0.78);
+    -fx-stroke-width: 1.6px;
+}
+
+.resource-search-bar {
+    -fx-padding: 2px 2px 6px 0;
+}
+
+.resource-back {
+    -fx-font-size: 12px;
+}
+
+/* 收藏模块：淡金 */
+.resource-card-favorite {
+    -fx-background-color: linear-gradient(to bottom right,
+        rgba(255, 249, 224, 0.97),
+        rgba(246, 228, 172, 0.93));
+    -fx-border-color: rgba(224, 191, 104, 0.92);
+}
+
+/* 搜索框：白色胶囊 */
+.search-capsule {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(255, 255, 255, 0.95);
+    -fx-padding: 7px 16px;
+    -fx-effect: dropshadow(gaussian, rgba(52, 66, 100, 0.10), 12, 0.02, 0, 3);
+}
+
+.search-capsule:focused {
+    -fx-border-color: rgba(108, 124, 255, 0.55);
+}
+
+.resource-pager {
+    -fx-padding: 2px 6px 0 0;
+}
+
+.favorite-remove {
+    -fx-font-size: 11px;
 }

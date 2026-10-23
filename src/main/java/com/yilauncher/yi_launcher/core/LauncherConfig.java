@@ -58,6 +58,8 @@ public final class LauncherConfig {
         public Double cornerRadius;
         /** 微软正版登录用的 Azure 公共客户端 ID（设备码流程），空 = 不可用。 */
         public String microsoftClientId;
+        /** CurseForge 官方 API Key：有它就走官方源下载，镜像只当备选。 */
+        public String curseForgeKey;
 
         public double speed() {
             return motionSpeed == null || motionSpeed <= 0 ? 1.0 : motionSpeed;
@@ -73,6 +75,10 @@ public final class LauncherConfig {
 
         public String msClientId() {
             return microsoftClientId == null ? "" : microsoftClientId.trim();
+        }
+
+        public String cfKey() {
+            return curseForgeKey == null ? "" : curseForgeKey.trim();
         }
     }
 
@@ -121,6 +127,7 @@ public final class LauncherConfig {
             config.ui.uiOpacity = decimal(uiMap, "uiOpacity");
             config.ui.cornerRadius = decimal(uiMap, "cornerRadius");
             config.ui.microsoftClientId = Json.string(uiMap, "microsoftClientId");
+            config.ui.curseForgeKey = Json.string(uiMap, "curseForgeKey");
             for (Object rawGroup : Json.list(root.get("groups"))) {
                 Map<String, Object> groupMap = Json.map(rawGroup);
                 GroupSettings settings = new GroupSettings();
@@ -244,6 +251,7 @@ public final class LauncherConfig {
         appendDecimal(uiFields, "uiOpacity", ui.uiOpacity);
         appendDecimal(uiFields, "cornerRadius", ui.cornerRadius);
         appendString(uiFields, "microsoftClientId", ui.microsoftClientId);
+        appendString(uiFields, "curseForgeKey", ui.curseForgeKey);
         sb.append("  \"ui\": {")
                 .append(uiFields.toString().replaceFirst("^,", ""))
                 .append(" },\n");

@@ -8,10 +8,12 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,7 +50,11 @@ public final class ModIdentity {
             return result;
         }
         try (var stream = Files.list(modsDir)) {
-            stream.filter(path -> path.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".jar"))
+            stream.filter(path -> {
+                        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+                        // 禁用就是把 .jar 改名成 .jar.disabled，扫描时要一起列出来
+                        return name.endsWith(".jar") || name.endsWith(".jar.disabled");
+                    })
                     .sorted()
                     .forEach(jar -> result.add(local(jar)));
         } catch (Exception ignored) {
@@ -128,20 +134,134 @@ public final class ModIdentity {
         if (mods == null || mods.isEmpty()) {
             return;
         }
-        List<Integer> pending = new ArrayList<>();
+        // 先看缓存：切页面回来、刷新列表都不用再联网
+        List<Integer> todo = new ArrayList<>();
+        Map<Integer, String> keys = new LinkedHashMap<>();
         for (int index = 0; index < mods.size(); index++) {
-            LocalMod mod = mods.get(index);
-            Remote remote = byCurseForge(mod);
-            if (remote != null) {
-                onOne.accept(index, remote);
+            String key = cacheKey(mods.get(index), gameVersion);
+            keys.put(index, key);
+            Remote cached = CACHE.get(key);
+            if (cached != null) {
+                onOne.accept(index, cached);
             } else {
-                pending.add(index);
+                todo.add(index);
             }
         }
-        if (pending.isEmpty()) {
+        if (todo.isEmpty()) {
             return;
         }
-        byModrinth(mods, pending, onOne);
+
+        Set<Integer> reported = java.util.Collections.synchronizedSet(new LinkedHashSet<>());
+        BiConsumer<Integer, Remote> store = (index, remote) -> {
+            if (index == null || remote == null) {
+                return;
+            }
+            reported.add(index);
+            String key = keys.get(index);
+            if (key != null) {
+                CACHE.put(key, remote);
+            }
+            onOne.accept(index, remote);
+        };
+
+        // ① 有官方 Key 就先走指纹精确匹配（比按名字猜准，也更快）
+        Set<Integer> identified = new LinkedHashSet<>();
+        if (CurseForge.available()) {
+            Map<Integer, Integer> byIndex = new LinkedHashMap<>();
+            Map<Integer, Integer> printToIndex = new java.util.concurrent.ConcurrentHashMap<>();
+            parallel(todo, index -> {
+                int fingerprint = Murmur2.fingerprint(mods.get(index).jar());
+                if (fingerprint != 0) {
+                    printToIndex.put(fingerprint, index);
+                }
+            });
+            if (!printToIndex.isEmpty()) {
+                Map<Integer, Integer> matches =
+                        CurseForge.fingerprints(new ArrayList<>(printToIndex.keySet()));
+                for (Map.Entry<Integer, Integer> entry : matches.entrySet()) {
+                    Integer index = printToIndex.get(entry.getKey());
+                    if (index != null) {
+                        byIndex.put(index, entry.getValue());
+                    }
+                }
+            }
+            identified.addAll(byIndex.keySet());
+            if (!byIndex.isEmpty()) {
+                Map<Integer, CurseForge.Mod> infos =
+                        CurseForge.mods(new ArrayList<>(new LinkedHashSet<>(byIndex.values())));
+                for (Map.Entry<Integer, Integer> entry : byIndex.entrySet()) {
+                    CurseForge.Mod info = infos.get(entry.getValue());
+                    if (info == null) {
+                        continue;
+                    }
+                    store.accept(entry.getKey(), new Remote(PackInstaller.CURSEFORGE,
+                            info.name(), info.logoUrl(), info.links(), ""));
+                }
+            }
+        }
+
+        List<Integer> pending = new ArrayList<>();
+        for (int index : todo) {
+            if (!identified.contains(index)) {
+                pending.add(index);   // 官方指纹已经认出来的就不用再猜了
+            }
+        }
+
+        // ② cfwidget 只能一个个按名字查，最慢，先把它挂到后台跑
+        Map<Integer, Remote> cfResults = new java.util.concurrent.ConcurrentHashMap<>();
+        Thread cfWorker = null;
+        if (!pending.isEmpty()) {
+            cfWorker = new Thread(() -> byCurseForgeParallel(mods, pending, cfResults::put), "yi-mod-cf");
+            cfWorker.setDaemon(true);
+            cfWorker.start();
+        }
+
+        // ③ Modrinth 按 sha1 批量认：两三个请求就能覆盖几百个模组，图标立刻出现
+        if (!pending.isEmpty()) {
+            byModrinth(mods, pending, store);
+        }
+        if (cfWorker != null) {
+            try {
+                cfWorker.join();
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+            }
+            // ④ 再补 cfwidget 的名字匹配：sha1 匹配更准，已经认出来的不覆盖
+            for (Map.Entry<Integer, Remote> entry : cfResults.entrySet()) {
+                if (!reported.contains(entry.getKey())) {
+                    store.accept(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        // 仍然没认出来的：记一条「空结果」，下次直接跳过联网，界面也不会一直转圈
+        for (int index : todo) {
+            if (reported.contains(index)) {
+                continue;
+            }
+            String key = keys.get(index);
+            if (key != null) {
+                CACHE.put(key, MISS);
+            }
+            onOne.accept(index, MISS);
+        }
+    }
+
+    /** 认出一个模组的结果缓存；source 为空表示「试过了，没认出来」。 */
+    private static final java.util.concurrent.ConcurrentHashMap<String, Remote> CACHE =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private static final Remote MISS = new Remote("", "", "", "", "");
+
+    /** 缓存键带上大小和修改时间：换了同名的新 jar 会自动失效。 */
+    private static String cacheKey(LocalMod mod, String gameVersion) {
+        Path jar = mod.jar();
+        String base = jar.toAbsolutePath().toString();
+        try {
+            base = base + "|" + Files.size(jar) + "|" + Files.getLastModifiedTime(jar).toMillis();
+        } catch (Exception ignored) {
+            // 读不到就用路径
+        }
+        return base + "|" + (gameVersion == null ? "" : gameVersion);
     }
 
     /**
@@ -187,16 +307,58 @@ public final class ModIdentity {
         return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
     }
 
+    /** cfwidget 只能一个个查，但可以并发查：8 条线程，几百个模组也就几秒钟。 */
+    private static void byCurseForgeParallel(List<LocalMod> mods, List<Integer> indexes,
+                                             BiConsumer<Integer, Remote> store) {
+        parallel(indexes, index -> {
+            Remote remote = byCurseForge(mods.get(index));
+            if (remote != null) {
+                store.accept(index, remote);
+            }
+        });
+    }
+
+    /** 简单并发：把一批下标分给几条线程跑完，单个失败不影响其它。 */
+    private static void parallel(List<Integer> indexes, java.util.function.IntConsumer body) {
+        if (indexes == null || indexes.isEmpty()) {
+            return;
+        }
+        int threads = Math.min(8, indexes.size());
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(threads,
+                task -> {
+                    Thread thread = new Thread(task, "yi-mod-scan");
+                    thread.setDaemon(true);
+                    return thread;
+                });
+        try {
+            List<java.util.concurrent.Future<?>> futures = new ArrayList<>();
+            for (int index : indexes) {
+                futures.add(pool.submit(() -> body.accept(index)));
+            }
+            for (java.util.concurrent.Future<?> future : futures) {
+                try {
+                    future.get();
+                } catch (Exception ignored) {
+                    // 单个失败不影响别的模组
+                }
+            }
+        } finally {
+            pool.shutdown();
+        }
+    }
+
+
     /** Modrinth：一个请求批量按 sha1 换版本，再批量换项目信息（图标 / 标题）。 */
     private static void byModrinth(List<LocalMod> mods, List<Integer> indexes,
                                    BiConsumer<Integer, Remote> onOne) {
-        Map<String, Integer> byHash = new LinkedHashMap<>();
-        for (int index : indexes) {
+        // 283 个 jar 串行算 sha1 要十几二十秒，8 条线程一起算快得多
+        Map<String, Integer> byHash = new java.util.concurrent.ConcurrentHashMap<>();
+        parallel(indexes, index -> {
             String hash = sha1(mods.get(index).jar());
             if (!hash.isBlank()) {
                 byHash.put(hash, index);
             }
-        }
+        });
         if (byHash.isEmpty()) {
             return;
         }
@@ -227,10 +389,7 @@ public final class ModIdentity {
                 }
             }
             String title = project == null ? "" : project.title();
-            String icon = project == null ? "" : project.iconUrl();
-            if (icon.toLowerCase(Locale.ROOT).contains(".webp")) {
-                icon = cfIcon(title);
-            }
+            String icon = project == null ? "" : iconPng(entry.getKey(), project.iconUrl());
             String page = project == null ? "" : "https://modrinth.com/mod/" + project.slug();
             String versionNumber = version == null ? "" : version.versionNumber();
             onOne.accept(entry.getValue(),
@@ -238,16 +397,19 @@ public final class ModIdentity {
         }
     }
 
-    /** 用项目名去 CF 换一张 JavaFX 能解的图标（找不到就空着，界面回退到首字母）。 */
-    private static String cfIcon(String title) {
-        String slug = slugify(title);
-        if (slug.isBlank()) {
+    /**
+     * Modrinth 只给 WebP，JavaFX 的 Image 解不了；同一张图有 PNG 版（约四成项目有），
+     * 直接换成 PNG 地址，省掉一次 cfwidget 查询；没有的项目就空着，界面回退首字母。
+     */
+    private static String iconPng(String projectId, String raw) {
+        if (raw == null || raw.isBlank()) {
             return "";
         }
-        return CfWidget.bySlug(slug)
-                .filter(project -> sameTitle(project.title(), title))
-                .map(CfWidget.Project::thumbnail)
-                .orElse("");
+        if (!raw.toLowerCase(Locale.ROOT).contains(".webp")) {
+            return raw;
+        }
+        return projectId == null || projectId.isBlank()
+                ? "" : "https://cdn.modrinth.com/data/" + projectId + "/icon.png";
     }
 
     /** slug 规则：小写、空格和下划线换成连字符，去掉奇怪字符。 */
@@ -292,7 +454,11 @@ public final class ModIdentity {
     }
 
     private static String stripExt(String name) {
-        int dot = name.lastIndexOf('.');
-        return dot > 0 ? name.substring(0, dot) : name;
+        String text = name;
+        if (text.toLowerCase(Locale.ROOT).endsWith(".disabled")) {
+            text = text.substring(0, text.length() - ".disabled".length());
+        }
+        int dot = text.lastIndexOf('.');
+        return dot > 0 ? text.substring(0, dot) : text;
     }
 }

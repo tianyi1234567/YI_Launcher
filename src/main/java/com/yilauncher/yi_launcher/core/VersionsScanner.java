@@ -99,69 +99,114 @@ public final class VersionsScanner {
         }
     }
 
+    /**
+     * 识别加载器。
+     * <p>整合包的 json 往往只有 {@code inheritsFrom}（mainClass、库、加载器版本全在父版本里），
+     * 所以要把整条继承链都看一遍，不能只看自己这一层。</p>
+     */
     private static void detectLoader(VersionEntry entry, Map<String, Object> json) {
-        String mainClass = Json.string(json, "mainClass", "");
-        StringBuilder libraryNames = new StringBuilder();
-        for (Object raw : Json.list(json.get("libraries"))) {
-            libraryNames.append(Json.string(Json.map(raw), "name", "")).append('\n');
+        List<Map<String, Object>> chain = new ArrayList<>();
+        List<String> ids = new ArrayList<>();
+        chain.add(json);
+        ids.add(entry.id);
+        String parent = Json.string(json, "inheritsFrom");
+        int depth = 0;
+        while (parent != null && !parent.isBlank() && depth++ < 10) {
+            ids.add(parent);
+            Path parentJson = entry.dir.getParent().resolve(parent).resolve(parent + ".json");
+            if (!Files.isRegularFile(parentJson)) {
+                break;
+            }
+            Map<String, Object> map;
+            try {
+                map = Json.map(Json.parse(Files.readString(parentJson)));
+            } catch (Exception error) {
+                break;
+            }
+            chain.add(map);
+            parent = Json.string(map, "inheritsFrom");
         }
-        String blob = (entry.id + "\n" + mainClass + "\n" + libraryNames).toLowerCase(Locale.ROOT);
 
-        if (blob.contains("neoforge")) {
+        StringBuilder blob = new StringBuilder();
+        for (int index = 0; index < chain.size(); index++) {
+            blob.append(ids.get(index)).append('\n')
+                    .append(Json.string(chain.get(index), "mainClass", "")).append('\n');
+            for (Object raw : Json.list(chain.get(index).get("libraries"))) {
+                blob.append(Json.string(Json.map(raw), "name", "")).append('\n');
+            }
+        }
+        String lower = blob.toString().toLowerCase(Locale.ROOT);
+
+        if (lower.contains("neoforge")) {
             entry.loader = "NeoForge";
-            entry.loaderVersion = idVersion(entry.id, "neoforge-",
-                    libraryVersion(Json.list(json.get("libraries")), "neoforge"));
-        } else if (blob.contains("fabric-loader") || blob.contains("net.fabricmc.loader")) {
+            entry.loaderVersion = firstVersion(chain, ids, "neoforge", "neoforge-");
+        } else if (lower.contains("fabric-loader") || lower.contains("net.fabricmc.loader")) {
             entry.loader = "Fabric";
-            entry.loaderVersion = libraryVersion(Json.list(json.get("libraries")), "fabric-loader");
-        } else if (blob.contains("quilt-loader")) {
+            entry.loaderVersion = firstVersion(chain, ids, "fabric-loader", "fabric-loader-");
+        } else if (lower.contains("quilt-loader")) {
             entry.loader = "Quilt";
-            entry.loaderVersion = libraryVersion(Json.list(json.get("libraries")), "quilt-loader");
-        } else if (blob.contains("net.minecraftforge") || entry.id.toLowerCase(Locale.ROOT).contains("forge")) {
+            entry.loaderVersion = firstVersion(chain, ids, "quilt-loader", "quilt-loader-");
+        } else if (lower.contains("net.minecraftforge") || lower.contains("forge-")) {
             entry.loader = "Forge";
-            entry.loaderVersion = libraryVersion(Json.list(json.get("libraries")), "forge");
-        } else if (blob.contains("optifine")) {
+            entry.loaderVersion = firstVersion(chain, ids, "forge", "forge-");
+        } else if (lower.contains("optifine")) {
             entry.loader = "OptiFine";
-            entry.loaderVersion = libraryVersion(Json.list(json.get("libraries")), "optifine");
+            entry.loaderVersion = firstVersion(chain, ids, "optifine", "OptiFine_");
         } else {
             entry.loader = "原版";
             entry.loaderVersion = "";
         }
     }
 
+    /** 链上任意一层里找到的库版本。 */
+    private static String chainLibrary(List<Map<String, Object>> chain, String keyword) {
+        for (Map<String, Object> layer : chain) {
+            String found = libraryVersion(Json.list(layer.get("libraries")), keyword);
+            if (!found.isBlank()) {
+                return found;
+            }
+        }
+        return "";
+    }
+
+    /** 库里没有再退一步：从版本 id 里取（1.20.1-forge-47.4.0 → 47.4.0）。 */
+    private static String firstVersion(List<Map<String, Object>> chain, List<String> ids,
+                                       String keyword, String idPrefix) {
+        String found = chainLibrary(chain, keyword);
+        if (!found.isBlank()) {
+            return found;
+        }
+        for (String id : ids) {
+            String lower = id.toLowerCase(Locale.ROOT);
+            int at = lower.lastIndexOf(idPrefix.toLowerCase(Locale.ROOT));
+            if (at >= 0 && id.length() > at + idPrefix.length()) {
+                return id.substring(at + idPrefix.length());
+            }
+        }
+        return "";
+    }
+
     /** 从 maven 坐标里取加载器版本号，例如 net.fabricmc:fabric-loader:0.16.9。 */
     private static String libraryVersion(List<Object> libraries, String keyword) {
-        String firstMatch = null;
         for (Object raw : libraries) {
             String name = Json.string(Json.map(raw), "name", "");
             String[] parts = name.split(":");
-            if (parts.length < 3 || !name.toLowerCase(Locale.ROOT).contains(keyword)) {
+            // 只认 artifactId 正好是加载器的库，别被 accesstransformers:8.0.4 这类带 forge 的坐标骗到
+            if (parts.length < 3 || !parts[1].equalsIgnoreCase(keyword)) {
                 continue;
             }
             String version = parts[parts.length - 1];
             if (version.startsWith("natives-")) {
                 version = parts.length >= 4 ? parts[parts.length - 2] : version;
             }
-            if (keyword.equals("forge") && version.contains("-")) {
+            if (keyword.equalsIgnoreCase("forge") && version.contains("-")) {
                 version = version.substring(version.lastIndexOf('-') + 1);
             }
-            if (parts[1].equals(keyword)) {
+            if (!version.isBlank()) {
                 return version;
             }
-            if (firstMatch == null) {
-                firstMatch = version;
-            }
         }
-        return firstMatch == null ? "" : firstMatch;
-    }
-
-    /** 版本文件夹名里通常带着加载器版本，例如 neoforge-21.1.235。 */
-    private static String idVersion(String id, String prefix, String fallback) {
-        String lower = id.toLowerCase(Locale.ROOT);
-        if (lower.startsWith(prefix) && id.length() > prefix.length()) {
-            return id.substring(prefix.length());
-        }
-        return fallback;
+        return "";
     }
 
     /** 顺着 inheritsFrom 找到最底层的原版版本号。 */
@@ -190,7 +235,8 @@ public final class VersionsScanner {
         if (!Files.isDirectory(mods)) {
             return 0;
         }
-        try (DirectoryStream<Path> files = Files.newDirectoryStream(mods, "*.jar")) {
+        // .jar.disabled 也算在内，不然禁用几个后数量会莫名变少
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(mods, "*.jar*")) {
             int count = 0;
             for (Path ignored : files) {
                 count++;

@@ -34,10 +34,12 @@ public final class PackInstaller {
 
     public static final String CURSEFORGE = "CurseForge";
     public static final String MODRINTH = "Modrinth";
-
-    /** 解包进度：总进度 / 模组线程 / 加载器线程，取值 0..1。 */
     public interface Progress {
         void update(double overall, double mods, double loader, String note);
+
+        /** 每一行当前在干什么（可选：不实现就只显示百分比）。 */
+        default void detail(String modsText, String loaderText) {
+        }
     }
 
     /**
@@ -264,6 +266,7 @@ public final class PackInstaller {
                 while (!(mods.finished() && others.finished())) {
                     double overall = (mods.progress() + others.progress()) / (mods.total() + others.total());
                     progress.update(Math.min(0.97, overall), mods.ratio(), others.ratio(), mods.note());
+                    progress.detail(mods.note(), others.note());
                     try {
                         Thread.sleep(120);
                     } catch (InterruptedException stop) {
@@ -287,7 +290,13 @@ public final class PackInstaller {
 
         if (mods.failed() > 0) {
             deleteTree(folder);
-            throw new IOException("下载源网络不佳：" + mods.failed() + " 个文件没下下来（已删除本次下载的内容）");
+            // 把没下来的文件名列出来，方便知道断在哪个模组上
+            StringBuilder names = new StringBuilder();
+            for (String failedName : mods.failedFiles()) {
+                names.append("\n· ").append(failedName);
+            }
+            throw new IOException("下载源网络不佳：" + mods.failed()
+                    + " 个文件没下下来（已删除本次下载的内容）" + names);
         }
 
         if (progress != null) {
@@ -357,6 +366,13 @@ public final class PackInstaller {
         private final List<ZipEntry> entries;
         private final int total;
         private volatile int done;
+        private volatile String note = "正在解压整合包";
+
+        /** 这一行现在在干什么（给界面上的小字用）。 */
+        String note() {
+            return String.format(Locale.ROOT, "%s %d/%d", note,
+                    Math.min(done, entries.size()), entries.size());
+        }
 
         Job(Path zipFile, Path folder, List<ZipEntry> entries) {
             this.zipFile = zipFile;

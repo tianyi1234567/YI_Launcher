@@ -238,9 +238,19 @@ public final class DropInstall {
             Thread worker = new Thread(() -> {
                 try {
                     PackInstaller.Result result = PackInstaller.installPack(zip, pack, chosen[0], target,
-                            (overall, mods, loader, note) -> {
-                                if (page != null) {
-                                    page.pushProgress(overall, mods, loader, note);
+                            new PackInstaller.Progress() {
+                                @Override
+                                public void update(double overall, double mods, double loader, String note) {
+                                    if (page != null) {
+                                        page.pushProgress(overall, mods, loader, note);
+                                    }
+                                }
+
+                                @Override
+                                public void detail(String modsText, String loaderText) {
+                                    if (page != null) {
+                                        page.pushDetail(modsText, loaderText);
+                                    }
                                 }
                             });
                     Platform.runLater(() -> {

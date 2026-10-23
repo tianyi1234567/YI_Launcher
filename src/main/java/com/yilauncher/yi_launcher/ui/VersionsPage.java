@@ -42,6 +42,9 @@ import java.util.Map;
 public final class VersionsPage extends BorderPane {
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    /** 列表栏展开 / 收起的宽度：收起时也留够宽，别让滚动条把行挤得太窄。 */
+    private static final double LIST_EXPANDED = 268;
+    private static final double LIST_COMPACT = 88;
 
     private final Ui.OverlayHost overlay;
     private final LauncherEngine engine = LauncherEngine.get();
@@ -195,6 +198,8 @@ public final class VersionsPage extends BorderPane {
         scroll.getStyleClass().addAll("list-scroll", "version-scroll");
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        // 竖向滚动条固定常驻：宽度不变，收起 / 展开时行宽估算才准，动画结束也不会再「挪一下」
+        scroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.ALWAYS);
 
         this.rail = rail;
         this.groupScroll = groups;
@@ -243,7 +248,7 @@ public final class VersionsPage extends BorderPane {
      */
     private void applyWidths(boolean animate) {
         double railWidth = railExpanded ? 172 : 62;
-        double listWidth = listExpanded ? 268 : 78;
+        double listWidth = listExpanded ? LIST_EXPANDED : LIST_COMPACT;
         if (animate) {
             final int token = ++widthToken;
             if (listScroll != null) {
@@ -440,7 +445,7 @@ public final class VersionsPage extends BorderPane {
     /** 行当前实际宽度（已经扣掉滚动条与内边距）。 */
     private double currentRowWidth() {
         if (listBox == null || listBox.getChildren().isEmpty()) {
-            return listExpanded ? 268 : 78;
+            return listExpanded ? LIST_EXPANDED : LIST_COMPACT;
         }
         return listBox.getChildren().get(0).getLayoutBounds().getWidth();
     }
@@ -448,9 +453,9 @@ public final class VersionsPage extends BorderPane {
     /** 视口会窄多少，行宽就跟着窄多少：用当前行宽推算收起后的行宽。 */
     private double compactRowWidth() {
         if (listScroll == null) {
-            return 78;
+            return LIST_COMPACT;
         }
-        double shrink = Math.max(0, listScroll.getWidth() - 78);
+        double shrink = Math.max(0, listScroll.getWidth() - LIST_COMPACT);
         return Math.max(30, currentRowWidth() - shrink);
     }
 
@@ -739,9 +744,13 @@ public final class VersionsPage extends BorderPane {
         boolean isolated = version.isolation;
         javafx.scene.layout.FlowPane row = settingRow("快捷目录");
 
-        if (!"原版".equals(version.loader)) {
-            row.getChildren().add(folderButton("Mod 文件夹",
-                    isolated ? version.dir.resolve("mods") : root.resolve("mods")));
+        // 只要不是纯原版，或者目录里已经有模组，就给这个按钮（整合包的 json 没写加载器名也不能漏）
+        java.nio.file.Path modsDir = isolated ? version.dir.resolve("mods") : root.resolve("mods");
+        boolean hasMods = version.modsCount > 0
+                || java.nio.file.Files.isDirectory(modsDir)
+                || !"原版".equals(version.loader);
+        if (hasMods) {
+            row.getChildren().add(folderButton("Mod 文件夹", modsDir));
         }
         row.getChildren().add(folderButton("存档文件夹",
                 isolated ? version.dir.resolve("saves") : root.resolve("saves")));

@@ -543,6 +543,8 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
             page = "启动".equals(name) ? new LaunchPage(this::openVersionSettings, this)
                     : "版本管理".equals(name) ? new VersionsPage(this)
                     : "模组管理".equals(name) ? new ModsPage(this)
+                    : "模组资源".equals(name) ? new ResourcesPage(this)
+                    : "账户".equals(name) ? new AccountPage(this)
                     : "下载中心".equals(name) ? new DownloadsPage(this)
                     : "设置".equals(name) ? new SettingsPage(this)
                     : buildPlaceholder(name);
@@ -795,7 +797,7 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         sidebar.setMaxWidth(152);
 
         VBox accountNav = navRow("账户", Icons.USER, false, null);
-        accountNav.setOnMouseClicked(e -> openAccountDialog());
+        accountNav.setOnMouseClicked(e -> openAccountPage());
         sidebar.getChildren().addAll(
                 navRow("启动", Icons.HOME, true, null),
                 navRow("版本管理", Icons.LAYERS, false, null),
@@ -885,7 +887,7 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         accountTip = new javafx.scene.control.Tooltip("点击登录 / 切换账户");
         accountTip.setShowDelay(javafx.util.Duration.millis(420));
         javafx.scene.control.Tooltip.install(card, accountTip);
-        card.setOnMouseClicked(e -> openAccountDialog());
+        card.setOnMouseClicked(e -> openAccountPage());
         Motion.pressFade(card);
 
         refreshAccountCard();
@@ -913,9 +915,14 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         }
     }
 
-    /** 打开账户面板（微软正版 / 离线 / LittleSkin）。 */
-    private void openAccountDialog() {
-        show(AccountDialog.create(this, this::refreshAccountCard));
+    /** 打开账户页面（微软正版 / 离线 / LittleSkin）；现在是真页面，不再是二次弹窗。 */
+    private void openAccountPage() {
+        selectPage("账户");
+    }
+
+    /** 账户页登录 / 切号 / 退出后，让左下角那张卡片跟着变。 */
+    public void refreshAccountCardNow() {
+        refreshAccountCard();
     }
 
     /* ============================ 小工具 ============================ */

@@ -49,6 +49,9 @@ public final class GameLaunch {
         Map<String, Object> resolved = resolveChain(root, entry.id);
         Path nativesDir = root.resolve("natives").resolve(entry.id);
         Files.createDirectories(nativesDir);
+        // 版本隔离：模组、配置、存档都放在这个版本自己的目录里
+        Path gameDir = entry.isolation && entry.dir != null ? entry.dir : entry.root(root);
+        Files.createDirectories(gameDir);
 
         List<String> classpath = new ArrayList<>();
         List<String> missing = new ArrayList<>();
@@ -62,7 +65,7 @@ public final class GameLaunch {
 
         String classpathText = String.join(File.pathSeparator, classpath);
         String assetIndex = assetIndexId(resolved);
-        Map<String, String> vars = variables(root, entry, classpathText, nativesDir, assetIndex);
+        Map<String, String> vars = variables(root, gameDir, entry, classpathText, nativesDir, assetIndex);
 
         String mainClass = Json.string(resolved, "mainClass", "net.minecraft.client.main.Main");
 
@@ -89,15 +92,30 @@ public final class GameLaunch {
         }
         applyWindowArgs(entry, gameArgs);
 
+        int required = entry.javaMajor;
+        if (vanillaJvm.contains("-p") || vanillaJvm.contains("--module-path")) {
+            // Forge 1.17+ 走模块路径启动，Java 8 会直接报 "Unrecognized option: -p"
+            required = Math.max(required, 9);
+        }
         JavaRuntimes.JavaRuntime java = entry.javaPath == null ? null : JavaRuntimes.probe(entry.javaPath);
         if (java == null) {
-            java = JavaRuntimes.pick(root, entry.javaMajor);
+            java = JavaRuntimes.pick(root, required);
         }
         if (java == null) {
-            throw new IllegalStateException("没有找到可用的 Java（该版本需要 Java " + entry.javaMajor + "）");
+            throw new IllegalStateException("没有找到可用的 Java（该版本需要 Java " + required + "）");
         }
-        if (java.major() < entry.javaMajor) {
-            status.accept("警告：Java " + java.major() + " 低于该版本要求的 " + entry.javaMajor + "，可能无法启动");
+        if (java.major() < required) {
+            // 版本设置里存了一个太老的 Java：别硬着头皮上，换一个够用的
+            JavaRuntimes.JavaRuntime better = JavaRuntimes.pick(root, required);
+            if (better != null && better.major() >= required) {
+                status.accept("这个版本要 Java " + required + "，已从 Java " + java.major()
+                        + " 换成 " + better.display());
+                java = better;
+            } else {
+                throw new IllegalStateException("这个版本需要 Java " + required + "，但本机最高只有 Java "
+                        + java.major() + "（" + java.exe() + "）。请装一个 Java " + required
+                        + "，再到「版本设置 → Java」里选它。");
+            }
         }
 
         List<String> command = new ArrayList<>();
@@ -120,7 +138,7 @@ public final class GameLaunch {
         }
 
         ProcessBuilder builder = new ProcessBuilder(command)
-                .directory(root.toFile())
+                .directory(gameDir.toFile())
                 .redirectErrorStream(true)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
         Process process = builder.start();
@@ -231,58 +249,89 @@ public final class GameLaunch {
         }
     }
 
+    /**
+     * 把游戏本体 jar 放进 classpath。
+     * <p>Forge / NeoForge 的 jvm 参数里带 {@code -DignoreList=…${version_name}.jar}，
+     * 而 {@code version_name} 就是启动的版本 id：它只认「自己版本目录下、和自己同名」的那个 jar。
+     * 缺了这份同名 jar，Bootstraplauncher 会把原版 jar 当成额外模块，报
+     * {@code Module minecraft contains package … module _1._20._1 exports …}。
+     * 所以这里按原版启动器的习惯，在每个版本目录都放一份同名 jar（优先硬链接，省空间）。</p>
+     */
     private static void addGameJars(Path root, String id, List<String> classpath, List<String> missing,
                                     List<PendingLibrary> pending) {
-        List<String> jars = new ArrayList<>();
+        Path target = MinecraftRoot.versions(root).resolve(id).resolve(id + ".jar");
+        List<String> chain = chainIds(root, id);
+
+        if (!Files.isRegularFile(target)) {
+            for (String cursor : chain) {
+                if (cursor.equals(id)) {
+                    continue;
+                }
+                Path source = MinecraftRoot.versions(root).resolve(cursor).resolve(cursor + ".jar");
+                if (!Files.isRegularFile(source)) {
+                    continue;
+                }
+                try {
+                    Files.createDirectories(target.getParent());
+                    try {
+                        Files.createLink(target, source);
+                    } catch (IOException | UnsupportedOperationException linkFailed) {
+                        Files.copy(source, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } catch (IOException ignored) {
+                    // 复制不了就继续找链上别的 jar
+                }
+                break;
+            }
+        }
+        if (Files.isRegularFile(target)) {
+            classpath.add(0, target.toString());
+            return;
+        }
+
+        // 一个 jar 都没有：顺着链找 downloads.client，直接下到自己的目录
+        for (String cursor : chain) {
+            Path jsonFile = MinecraftRoot.versions(root).resolve(cursor).resolve(cursor + ".json");
+            if (!Files.isRegularFile(jsonFile)) {
+                continue;
+            }
+            Map<String, Object> json;
+            try {
+                json = Json.map(Json.parse(Files.readString(jsonFile)));
+            } catch (Exception error) {
+                continue;
+            }
+            Map<String, Object> client = Json.map(Json.map(json.get("downloads")).get("client"));
+            String url = Json.string(client, "url");
+            if (url == null || url.isBlank()) {
+                continue;
+            }
+            pending.add(new PendingLibrary(target, url, Json.string(client, "sha1"),
+                    target.getFileName().toString(), false));
+            classpath.add(0, target.toString());
+            return;
+        }
+        missing.add(id + ".jar");
+    }
+
+    /** 顺着 inheritsFrom 读出整条版本链（从自己到底层原版）。 */
+    private static List<String> chainIds(Path root, String id) {
+        List<String> chain = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         String cursor = id;
-        while (cursor != null && seen.add(cursor)) {
-            Path base = MinecraftRoot.versions(root).resolve(cursor);
-            Path jar = base.resolve(cursor + ".jar");
-            if (Files.isRegularFile(jar)) {
-                jars.add(jar.toString());
-            }
-            Path json = base.resolve(cursor + ".json");
+        while (cursor != null && !cursor.isBlank() && seen.add(cursor)) {
+            chain.add(cursor);
+            Path json = MinecraftRoot.versions(root).resolve(cursor).resolve(cursor + ".json");
             if (!Files.isRegularFile(json)) {
                 break;
             }
             try {
                 cursor = Json.string(Json.map(Json.parse(Files.readString(json))), "inheritsFrom");
-            } catch (Exception ex) {
+            } catch (Exception error) {
                 break;
             }
         }
-        if (jars.isEmpty()) {
-            String cursorJson = id;
-            Set<String> visited = new HashSet<>();
-            while (cursorJson != null && visited.add(cursorJson)) {
-                Path jsonFile = MinecraftRoot.versions(root).resolve(cursorJson)
-                        .resolve(cursorJson + ".json");
-                if (!Files.isRegularFile(jsonFile)) {
-                    break;
-                }
-                Map<String, Object> json;
-                try {
-                    json = Json.map(Json.parse(Files.readString(jsonFile)));
-                } catch (Exception error) {
-                    break;
-                }
-                Map<String, Object> client = Json.map(Json.map(json.get("downloads")).get("client"));
-                String url = Json.string(client, "url");
-                if (url != null && !url.isBlank()) {
-                    Path target = MinecraftRoot.versions(root).resolve(cursorJson)
-                            .resolve(cursorJson + ".jar");
-                    pending.add(new PendingLibrary(target, url, Json.string(client, "sha1"),
-                            cursorJson + ".jar", false));
-                    classpath.add(0, target.toString());
-                    return;
-                }
-                cursorJson = Json.string(json, "inheritsFrom");
-            }
-            missing.add(id + ".jar");
-            return;
-        }
-        classpath.addAll(0, jars);
+        return chain;
     }
 
     /** 下载缺失的库 / 客户端 jar，并在下载成功后补进 classpath 或解压 natives。 */
@@ -562,7 +611,7 @@ public final class GameLaunch {
         }
     }
 
-    private static Map<String, String> variables(Path root, VersionEntry entry, String classpath,
+    private static Map<String, String> variables(Path root, Path gameDir, VersionEntry entry, String classpath,
                                                  Path nativesDir, String assetIndex) {
         Map<String, String> vars = new HashMap<>();
         Account account = AccountStore.get().selectedOrGuest();
@@ -573,7 +622,7 @@ public final class GameLaunch {
                 ? "0" : account.accessToken;
         vars.put("auth_player_name", player);
         vars.put("version_name", entry.id);
-        vars.put("game_directory", root.toString());
+        vars.put("game_directory", gameDir.toString());
         vars.put("assets_root", MinecraftRoot.assets(root).toString());
         vars.put("game_assets", root.resolve("virtual").resolve("legacy").toString());
         vars.put("assets_index_name", assetIndex);

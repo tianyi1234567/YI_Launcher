@@ -90,10 +90,28 @@ public final class SettingsPage extends BorderPane {
                 "settings-hint");
         hint.setWrapText(true);
 
+        // CurseForge 官方 API Key：有它就走官方源，镜像降级为备选
+        javafx.scene.control.TextField cfField = new javafx.scene.control.TextField(ui.cfKey());
+        cfField.getStyleClass().add("dialog-field");
+        cfField.setPromptText("CurseForge API Key（core 后台申请）");
+        cfField.setPrefWidth(300);
+        Label cfState = Ui.label(ui.cfKey().isBlank()
+                ? "没有 Key：整合包模组走 cfwidget / MCIM 镜像"
+                : "已配置：整合包模组优先走 CurseForge 官方源", "settings-hint");
+        Button cfSave = Ui.ghostButton("保存", null, () -> {
+            String value = cfField.getText() == null ? "" : cfField.getText().trim();
+            ui.curseForgeKey = value.isBlank() ? null : value;
+            LauncherEngine.get().config().save();
+            cfState.setText(value.isBlank() ? "已清空：回到镜像源" : "已保存：下次安装优先走官方源");
+        });
+        HBox cfControl = new HBox(8, cfField, cfSave);
+        cfControl.setAlignment(Pos.CENTER_LEFT);
+
         VBox card = new VBox(9,
                 Ui.label("账户", "card-title"),
                 row("微软客户端 ID", "正版登录借用你自己的 Azure 公共客户端，不内置第三方 ID", control),
-                hint, state);
+                row("CurseForge Key", "填了就用官方源下载整合包模组，失败才回退镜像", cfControl),
+                hint, state, cfState);
         card.getStyleClass().addAll("card", "card-pad");
         return card;
     }

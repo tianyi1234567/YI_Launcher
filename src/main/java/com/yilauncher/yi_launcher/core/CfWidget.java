@@ -86,6 +86,19 @@ public final class CfWidget {
     }
 
     /**
+     * 备用 CDN：forgecdn 有两个域名，mediafilez 上不一定有每个文件（会 403），
+     * edge 上一般都有（返回 302 到真实 CDN）。作者关掉第三方下载时只能靠这个。
+     */
+    public static String edgeUrl(int fileId, String fileName) {
+        if (fileId <= 0 || fileName == null || fileName.isBlank()) {
+            return "";
+        }
+        return "https://edge.forgecdn.net/files/"
+                + (fileId / 1000) + "/" + String.format(Locale.ROOT, "%03d", fileId % 1000)
+                + "/" + encodeSegment(fileName);
+    }
+
+    /**
      * 文件名要百分号编码：模组名里的 {@code +}（如 sodium-...beta+mc26.3.jar）
      * 原样发出去 CDN 直接 403，必须写成 %2B。
      */

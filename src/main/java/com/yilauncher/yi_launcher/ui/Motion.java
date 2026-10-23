@@ -105,6 +105,21 @@ public final class Motion {
         return speed;
     }
 
+    /** 停掉节点上正在跑的动画，并把透明度 / 位移摆正（不碰缩放，文字不会被压缩）。 */
+    public static void settle(Node node) {
+        if (node == null) {
+            return;
+        }
+        Map<String, Animation> running = registry(node);
+        for (Animation anim : running.values()) {
+            anim.stop();
+        }
+        running.clear();
+        node.setOpacity(1);
+        node.setTranslateX(0);
+        node.setTranslateY(0);
+    }
+
     private static void play(Node node, String key, Animation anim) {
         Map<String, Animation> running = registry(node);
         Animation previous = running.get(key);

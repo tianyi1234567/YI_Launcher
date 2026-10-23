@@ -36,6 +36,15 @@ public final class Remote {
         return send(request(url).GET().build(), Duration.ofSeconds(30));
     }
 
+    /** GET 一段文本，可带自定义请求头（CurseForge 的 x-api-key 用）。 */
+    public static String getTextWithHeaders(String url, java.util.Map<String, String> headers) throws IOException {
+        HttpRequest.Builder builder = request(url).GET();
+        for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.header(entry.getKey(), entry.getValue());
+        }
+        return send(builder.build(), Duration.ofSeconds(30));
+    }
+
     /** POST 一个 JSON 文本。 */
     public static String postJson(String url, String body) throws IOException {
         HttpRequest request = request(url)
@@ -45,9 +54,30 @@ public final class Remote {
         return send(request, Duration.ofSeconds(30));
     }
 
+    /** POST 一个 JSON 文本，可带自定义请求头。 */
+    public static String postJsonWithHeaders(String url, String body,
+                                             java.util.Map<String, String> headers) throws IOException {
+        HttpRequest.Builder builder = request(url)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body));
+        for (java.util.Map.Entry<String, String> entry : headers.entrySet()) {
+            builder.header(entry.getKey(), entry.getValue());
+        }
+        return send(builder.build(), Duration.ofSeconds(30));
+    }
+
     /** 打开一个下载流（调用方负责关）。 */
     public static HttpResponse<InputStream> openStream(String url) throws IOException {
-        HttpRequest request = request(url).GET().build();
+        return openStream(url, Duration.ofSeconds(60));
+    }
+
+    /** 同上，但可以指定「多久拿不到响应头就放弃」（图标这类小文件用短超时，别堵线程池）。 */
+    public static HttpResponse<InputStream> openStream(String url, Duration timeout) throws IOException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .header("User-Agent", USER_AGENT)
+                .header("Accept", "image/*, */*")
+                .timeout(timeout)
+                .GET().build();
         try {
             HttpResponse<InputStream> response =
                     CLIENT.send(request, HttpResponse.BodyHandlers.ofInputStream());
