@@ -3,6 +3,7 @@ package com.yilauncher.yi_launcher.ui;
 import com.yilauncher.yi_launcher.core.Account;
 import com.yilauncher.yi_launcher.core.AccountStore;
 import com.yilauncher.yi_launcher.core.AuthClients;
+import com.yilauncher.yi_launcher.core.LauncherEngine;
 
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
@@ -48,6 +49,8 @@ public final class AccountPage extends BorderPane {
     private final VBox accountBox = new VBox(9);
     private final Label status = Ui.label("", "account-status");
     private final List<Button> buttons = new ArrayList<>();
+    /** 页面滚动容器：点「去正版登录」时滚回顶部那张金光卡。 */
+    private ScrollPane scroller;
     private int flowToken;
 
     public AccountPage(MainView host) {
@@ -67,13 +70,13 @@ public final class AccountPage extends BorderPane {
         list.setPadding(new Insets(2, 6, 6, 0));
         refreshAccount();
 
-        ScrollPane scroll = new ScrollPane(list);
-        scroll.getStyleClass().addAll("list-scroll", "detail-scroll");
-        scroll.setFitToWidth(true);
-        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        VBox.setVgrow(scroll, Priority.ALWAYS);
+        scroller = new ScrollPane(list);
+        scroller.getStyleClass().addAll("list-scroll", "detail-scroll");
+        scroller.setFitToWidth(true);
+        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        VBox.setVgrow(scroller, Priority.ALWAYS);
 
-        main.getChildren().addAll(header, scroll);
+        main.getChildren().addAll(header, scroller);
         return main;
     }
 
@@ -118,6 +121,8 @@ public final class AccountPage extends BorderPane {
                 openUrl(device.verificationUri());
                 Account account = AuthClients.microsoftWait(device);
                 if (token == flowToken) {
+                    // 正版登录成功 = 这个玩家确实有游戏，之后离线 / 皮肤站登录才放行
+                    LauncherEngine.get().config().markPremiumVerified();
                     finish(account);
                 }
             });
@@ -166,11 +171,56 @@ public final class AccountPage extends BorderPane {
         return card;
     }
 
+    /* ============================ 正版前置校验（Mojang 规则） ============================ */
+
+    /**
+     * 离线 / 皮肤站登录的前置条件：必须先成功用正版（微软）账号登录过一次。
+     * <p>Mojang 的 EULA 里，离线与第三方登录只给确实拥有游戏的玩家用；
+     * 我们没法在这里验证购买凭证，所以要求「登录过正版」当门槛。</p>
+     *
+     * @return true = 可以继续登录；false = 已经弹出提示，调用方直接返回
+     */
+    private boolean requirePremium() {
+        if (LauncherEngine.get().config().premiumVerified()) {
+            return true;
+        }
+        showPremiumRequired();
+        return false;
+    }
+
+    private void showPremiumRequired() {
+        Label title = Ui.label("先用正版账号登录一次", "dialog-title", "danger-title");
+        Label warn = Ui.label("按 Mojang 的规则，离线登录和皮肤站登录只提供给确实拥有《我的世界》的玩家。\n"
+                + "请先在「正版登录」那张卡里用微软账号登录一次（免费，只是验证你买过游戏），"
+                + "之后离线 / 皮肤站就能随便用。", "dialog-hint");
+        warn.setWrapText(true);
+        warn.setMaxWidth(360);
+
+        Button cancel = Ui.ghostButton("知道了", null, host::hide);
+        Button go = Ui.primaryButton("去正版登录", null, () -> {
+            host.hide();
+            if (scroller != null) {
+                Motion.translate(scroller, 0, 0, 1, Motion.SOFT);
+                scroller.setVvalue(0);
+            }
+            setStatus("在上面那张金色卡片里点「获取微软验证码」", false);
+        });
+        HBox buttonsRow = new HBox(8, Ui.spacer(), cancel, go);
+        buttonsRow.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox card = new VBox(12, title, warn, buttonsRow);
+        card.getStyleClass().addAll("dialog-card", "danger-card");
+        card.setPadding(new Insets(18, 20, 16, 20));
+        card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
+        host.show(card);
+    }
+
     /* ============================ 离线登录（补票提示） ============================ */
 
     private Node offlineCard() {
         Label title = Ui.label("离线登录", "account-card-title");
-        Label hint = Ui.label("不联网、不需要密码，只在本机按名字算出 UUID。", "settings-hint");
+        Label hint = Ui.label("不联网、不需要密码，只在本机按名字算出 UUID"
+                + "（需要先用正版账号登录过一次）。", "settings-hint");
         hint.setWrapText(true);
 
         Account selected = AccountStore.get().selected();
@@ -195,6 +245,10 @@ public final class AccountPage extends BorderPane {
 
         Button go = Ui.primaryButton("离线登录", null, null);
         go.setOnAction(e -> {
+            // Mojang 规则：没正版登录过不许用离线
+            if (!requirePremium()) {
+                return;
+            }
             String player = name.getText() == null ? "" : name.getText().trim();
             if (!player.matches("[A-Za-z0-9_]{3,16}")) {
                 setStatus("名字要用 3-16 位字母、数字或下划线", true);
@@ -229,7 +283,8 @@ public final class AccountPage extends BorderPane {
 
     private Node skinCard() {
         Label title = Ui.label("其他登录 · 皮肤站", "account-card-title");
-        Label hint = Ui.label("用 littleskin.cn 的账号登录，会读这个角色的皮肤当头像。", "settings-hint");
+        Label hint = Ui.label("用 littleskin.cn 的账号登录，会读这个角色的皮肤当头像"
+                + "（同样需要先用正版账号登录过一次）。", "settings-hint");
         hint.setWrapText(true);
 
         TextField email = new TextField();
@@ -246,6 +301,9 @@ public final class AccountPage extends BorderPane {
 
         Button go = Ui.primaryButton("登录皮肤站", null, null);
         go.setOnAction(e -> {
+            if (!requirePremium()) {
+                return;
+            }
             String user = email.getText() == null ? "" : email.getText().trim();
             String pass = password.getText() == null ? "" : password.getText();
             if (user.isEmpty() || pass.isEmpty()) {

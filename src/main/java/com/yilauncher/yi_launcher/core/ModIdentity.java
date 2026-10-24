@@ -134,6 +134,8 @@ public final class ModIdentity {
         if (mods == null || mods.isEmpty()) {
             return;
         }
+        // 上个进程认出来的结果从磁盘读回来：第二次进模组管理不用再联网
+        loadDiskCache();
         // 先看缓存：切页面回来、刷新列表都不用再联网
         List<Integer> todo = new ArrayList<>();
         Map<Integer, String> keys = new LinkedHashMap<>();
@@ -245,6 +247,66 @@ public final class ModIdentity {
             }
             onOne.accept(index, MISS);
         }
+        saveDiskCache(keys.values());
+    }
+
+    /* ============================ 磁盘缓存（跨启动） ============================ */
+
+    /** 识别结果落盘：key = 路径|大小|修改时间|游戏版本，值用制表符分隔。 */
+    private static final Path CACHE_FILE =
+            LauncherConfig.defaultFile().getParent().resolve("mod_identity.tsv");
+    private static volatile boolean diskLoaded;
+
+    private static synchronized void loadDiskCache() {
+        if (diskLoaded) {
+            return;
+        }
+        diskLoaded = true;
+        try {
+            if (!Files.isRegularFile(CACHE_FILE)) {
+                return;
+            }
+            for (String line : Files.readAllLines(CACHE_FILE, java.nio.charset.StandardCharsets.UTF_8)) {
+                String[] parts = line.split("\t", -1);
+                if (parts.length < 6 || parts[0].isBlank()) {
+                    continue;
+                }
+                CACHE.putIfAbsent(parts[0],
+                        new Remote(parts[1], parts[2], parts[3], parts[4], parts[5]));
+            }
+        } catch (Exception ignored) {
+            // 缓存坏了就当没有，重新联网认
+        }
+    }
+
+    /** 只写本次出现的模组：换了 jar 的旧记录自动清掉，文件不会越滚越大。 */
+    private static synchronized void saveDiskCache(java.util.Collection<String> keys) {
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        try {
+            StringBuilder text = new StringBuilder();
+            for (String key : keys) {
+                Remote remote = CACHE.get(key);
+                if (remote == null) {
+                    continue;
+                }
+                text.append(clean(key)).append('\t')
+                        .append(clean(remote.source())).append('\t')
+                        .append(clean(remote.title())).append('\t')
+                        .append(clean(remote.iconUrl())).append('\t')
+                        .append(clean(remote.pageUrl())).append('\t')
+                        .append(clean(remote.version())).append('\n');
+            }
+            Files.createDirectories(CACHE_FILE.getParent());
+            Files.writeString(CACHE_FILE, text.toString(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            // 写不进去就算了，下次重新联网
+        }
+    }
+
+    private static String clean(String text) {
+        return text == null ? "" : text.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ');
     }
 
     /** 认出一个模组的结果缓存；source 为空表示「试过了，没认出来」。 */
@@ -252,10 +314,14 @@ public final class ModIdentity {
             new java.util.concurrent.ConcurrentHashMap<>();
     private static final Remote MISS = new Remote("", "", "", "", "");
 
-    /** 缓存键带上大小和修改时间：换了同名的新 jar 会自动失效。 */
+    /**
+     * 缓存键带上大小和修改时间：换了同名的新 jar 会自动失效。
+     * <p>前面的 v2 是「识别来源改成了 CurseForge 镜像」的版本号——不带上它，老缓存会让
+     * 所有模组都跳过新一轮识别，图标永远补不上。</p>
+     */
     private static String cacheKey(LocalMod mod, String gameVersion) {
         Path jar = mod.jar();
-        String base = jar.toAbsolutePath().toString();
+        String base = "v2|" + jar.toAbsolutePath();
         try {
             base = base + "|" + Files.size(jar) + "|" + Files.getLastModifiedTime(jar).toMillis();
         } catch (Exception ignored) {
@@ -269,21 +335,43 @@ public final class ModIdentity {
      * <p>名字猜出来的必须跟项目标题对得上——否则「Random Junk」这种名字会撞到同名的无关项目。</p>
      */
     private static Remote byCurseForge(LocalMod mod) {
+        // ① 先走 MCIM 镜像（免 Key、0.7~3 秒）：modid 当 slug 最准
         String byId = mod.modId().isBlank() ? "" : slugify(mod.modId());
+        if (!byId.isBlank()) {
+            Optional<CfMirror.Mod> project = CfMirror.bySlug(byId);
+            if (project.isPresent()) {
+                return remote(project.get());
+            }
+        }
+        // ② 名字猜 slug：必须跟项目名对得上，否则「Random Junk」会撞到无关项目
+        String byName = mod.name().isBlank() ? "" : slugify(mod.name());
+        if (!byName.isBlank() && !byName.equals(byId)) {
+            Optional<CfMirror.Mod> project = CfMirror.bySlug(byName);
+            if (project.isPresent() && sameTitle(project.get().name(), mod.name())) {
+                return remote(project.get());
+            }
+        }
+        // ③ 镜像搜名字（模糊），同样要标题对得上
+        if (!mod.name().isBlank()) {
+            Optional<CfMirror.Mod> project = CfMirror.byName(mod.name());
+            if (project.isPresent() && sameTitle(project.get().name(), mod.name())) {
+                return remote(project.get());
+            }
+        }
+        // ④ 老路子 cfwidget（慢，但偶尔能补上镜像没有的）
         if (!byId.isBlank()) {
             Optional<CfWidget.Project> project = CfWidget.bySlug(byId);
             if (project.isPresent()) {
                 return remote(project.get());
             }
         }
-        String byName = mod.name().isBlank() ? "" : slugify(mod.name());
-        if (!byName.isBlank() && !byName.equals(byId)) {
-            Optional<CfWidget.Project> project = CfWidget.bySlug(byName);
-            if (project.isPresent() && sameTitle(project.get().title(), mod.name())) {
-                return remote(project.get());
-            }
-        }
         return null;
+    }
+
+    /** MCIM 镜像的项目转成 Remote（缩略图是 PNG，JavaFX 能直接解）。 */
+    private static Remote remote(CfMirror.Mod project) {
+        return new Remote(PackInstaller.CURSEFORGE, project.name(),
+                project.thumbnail(), project.pageUrl(), "");
     }
 
     /** 把 cfwidget 项目转成 Remote（版本取它最新文件对应的游戏版本）。 */
@@ -345,6 +433,58 @@ public final class ModIdentity {
         } finally {
             pool.shutdown();
         }
+    }
+
+    /**
+     * 图标兜底：Modrinth 常只给 WebP（JavaFX 解不了），改去 CurseForge 镜像拿同一张图的 PNG。
+     * <p>依次试：Modrinth 页面的 slug → 模组的 modid → 标题模糊查（标题得对得上）。
+     * 只有真的拿到图才记缓存：网络抖动导致的一次失败不能让这个模组永远没图标。</p>
+     */
+    public static String iconFallback(String pageUrl, String title, String modId) {
+        String slug = slugOf(pageUrl);
+        String key = slug + "|" + (modId == null ? "" : modId.trim().toLowerCase(Locale.ROOT))
+                + "|" + (title == null ? "" : title.trim().toLowerCase(Locale.ROOT));
+        String cached = ICON_FALLBACK.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        Optional<CfMirror.Mod> project = CfMirror.bySlug(slug);
+        if (project.isEmpty() && modId != null && !modId.isBlank()) {
+            project = CfMirror.bySlug(modId.trim());
+        }
+        if (project.isEmpty() && title != null && !title.isBlank()) {
+            Optional<CfMirror.Mod> byName = CfMirror.byName(title);
+            if (byName.isPresent() && sameTitle(byName.get().name(), title)) {
+                project = byName;
+            }
+        }
+        String found = project.map(CfMirror.Mod::thumbnail).orElse("");
+        if (!found.isBlank()) {
+            ICON_FALLBACK.put(key, found);
+        }
+        return found;
+    }
+
+    private static final Map<String, String> ICON_FALLBACK =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 从 https://modrinth.com/mod/&lt;slug&gt; 里取最后一段。 */
+    private static String slugOf(String pageUrl) {
+        if (pageUrl == null || pageUrl.isBlank()) {
+            return "";
+        }
+        String trimmed = pageUrl.trim();
+        int query = trimmed.indexOf('?');
+        if (query > 0) {
+            trimmed = trimmed.substring(0, query);
+        }
+        String[] parts = trimmed.split("/");
+        for (int index = parts.length - 1; index >= 0; index--) {
+            if (!parts[index].isBlank()) {
+                return parts[index];
+            }
+        }
+        return "";
     }
 
 

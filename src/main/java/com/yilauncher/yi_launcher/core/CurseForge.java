@@ -7,9 +7,8 @@ import java.util.Optional;
 /**
  * CurseForge 官方 API（要 Key）。
  * <p>有 Key 时它是首选下载源：{@code GET /v1/mods/{modId}/files/{fileId}} 直接给
- * 文件名、大小和 CDN 地址，比 cfwidget 稳且快。镜像（cfwidget / MCIM）只在官方失败时兜底。</p>
- * <p>Key 的取法：{@code -Dyi.cfKey=...} → 配置文件 ui.curseForgeKey → 空（等于没有官方源）。
- * 不在源码里写死任何 Key。</p>
+ * <p>Key 已经内置在源码里（{@link #BUILTIN_KEY}），设置页不再暴露；只有调试时才用
+ * {@code -Dyi.cfKey=...} 临时覆盖。镜像（cfwidget / MCIM）只在官方失败时兜底。</p>
  */
 public final class CurseForge {
 
@@ -29,18 +28,20 @@ public final class CurseForge {
     public record Mod(int id, String name, String slug, String logoUrl, String links) {
     }
 
-    /** 当前 Key（启动参数优先）。 */
+    /**
+     * 内置的 CurseForge 官方 API Key（直接写在源码里，设置页不暴露）。
+     * <p>只有开发者临时调试才用 {@code -Dyi.cfKey=} 覆盖。</p>
+     */
+    private static final String BUILTIN_KEY =
+            "$2a$10$1z5R/Emlk1ns5LqPuv4VlOENjmXzhHtRB2260ZXdJ3skt3v.hU7M2";
+
+    /** 当前使用的 CurseForge Key（启动参数优先，其次内置）。 */
     public static String key() {
         String fromProperty = System.getProperty("yi.cfKey");
         if (fromProperty != null && !fromProperty.isBlank()) {
             return fromProperty.trim();
         }
-        try {
-            // 配置每次读一遍：用户在设置页改 Key 之后不用重启
-            return LauncherConfig.load().ui().cfKey();
-        } catch (Exception error) {
-            return "";
-        }
+        return BUILTIN_KEY;
     }
 
     public static boolean available() {
@@ -177,8 +178,7 @@ public final class CurseForge {
                 }
                 Map<String, Object> links = Json.map(data.get("links"));
                 result.put(id, new Mod(id, name, Json.string(data, "slug", ""),
-                        Remote.absolute(Json.string(data, "logo", "")),
-                        Json.string(links, "websiteUrl", "")));
+                        logo(data), Json.string(links, "websiteUrl", "")));
             }
             consecutiveFailures = 0;
         } catch (Exception error) {
@@ -243,8 +243,7 @@ public final class CurseForge {
             }
             Map<String, Object> links = Json.map(data.get("links"));
             return Optional.of(new Mod(Json.integer(data, "id", modId), name,
-                    Json.string(data, "slug", ""),
-                    Remote.absolute(Json.string(data, "logo", "")),
+                    Json.string(data, "slug", ""), logo(data),
                     Json.string(links, "websiteUrl", "")));
         } catch (Exception error) {
             coolDown(error.getMessage());
@@ -255,6 +254,20 @@ public final class CurseForge {
     private static String withKey(String url) throws Exception {
         // Remote 目前只支持统一 UA；这里用带 x-api-key 的请求，逻辑复用小函数
         return Http.get(url, key());
+    }
+
+    /**
+     * 官方接口的 {@code logo} 是个对象：{@code {thumbnailUrl, url}}，不是字符串。
+     * <p>以前按字符串取，结果「CurseForge 认出来的模组全都没有图标」。
+     * 优先用 256px 缩略图（小、快），没有再退回原图。</p>
+     */
+    private static String logo(Map<String, Object> data) {
+        Map<String, Object> logo = Json.map(data.get("logo"));
+        String thumbnail = Json.string(logo, "thumbnailUrl", "");
+        if (thumbnail.isBlank()) {
+            thumbnail = Json.string(logo, "url", "");
+        }
+        return Remote.absolute(thumbnail);
     }
 
     /** 失败就冷却（429 / 网络问题都别再来回试）。 */

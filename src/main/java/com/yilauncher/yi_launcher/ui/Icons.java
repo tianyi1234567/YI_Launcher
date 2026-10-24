@@ -38,6 +38,9 @@ public final class Icons {
     public static final String MAXIMIZE = "M5.9 5.9h12.2v12.2H5.9z";
     public static final String CLOSE = "M6.6 6.6 17.4 17.4M17.4 6.6 6.6 17.4";
 
+    /** 删除：垃圾桶。 */
+    public static final String TRASH = "M4.8 6.9h14.4M9.6 6.9V4.7h4.8v2.2M6.8 6.9l.9 12.4h8.6l.9-12.4M10.3 10.6v5.4M13.7 10.6v5.4";
+
     private Icons() {
     }
 

@@ -1358,7 +1358,26 @@
 .danger-btn:hover {
     -fx-background-color: linear-gradient(to bottom right, #F5806F, #E14A36);
 }
-
+/** 删除按钮：红色垃圾桶，放在详情右上角「打开版本文件夹」后面。 */
+.trash-btn {
+    -fx-background-color: rgba(226, 100, 94, 0.14);
+    -fx-background-radius: 999px;
+    -fx-border-radius: 999px;
+    -fx-border-width: 1px;
+    -fx-border-color: rgba(226, 100, 94, 0.32);
+    -fx-cursor: hand;
+}
+.trash-btn:hover {
+    -fx-background-color: rgba(226, 100, 94, 0.26);
+    -fx-border-color: rgba(226, 100, 94, 0.60);
+}
+.trash-icon {
+    -fx-stroke: #D95757;
+    -fx-stroke-width: 1.7;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+    -fx-fill: transparent;
+}
 /* ---------------- 图标按钮 / 栏位收起 ---------------- */
 
 .icon-btn {

@@ -81,6 +81,8 @@ public final class ModsPage extends BorderPane {
     private final Label countLabel = Ui.label("", "settings-hint");
     // 图标缓存在 IconCache 里，全启动器共用
     private final List<Row> rows = new ArrayList<>();
+    /** 识别是否已经跑完（跑完之前不给未识别的行去找兜底图标）。 */
+    private boolean identifyDone;
     /** 列表容器：图标按「是否滚进视口」按需加载。 */
     private ScrollPane scroller;
     private PauseTransition iconFlush;
@@ -138,6 +140,9 @@ public final class ModsPage extends BorderPane {
         scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         // 滚到哪补到哪：只给进入视口（上下各留 400px）的行下载图标
         scroller.vvalueProperty().addListener((obs, old, now) -> scheduleIconFlush());
+        // 布局一变（行加进来 / 窗口拉伸）就补一次：保证第一次进来图标能自己冒出来
+        scroller.heightProperty().addListener((obs, old, now) -> scheduleIconFlush());
+        list.heightProperty().addListener((obs, old, now) -> scheduleIconFlush());
 
         actions.setAlignment(Pos.CENTER_LEFT);
         actions.getStyleClass().add("mod-actions");
@@ -266,9 +271,22 @@ public final class ModsPage extends BorderPane {
             Motion.opacity(list, 1, 180, Motion.SOFT);
         }
 
-        Thread worker = new Thread(() -> ModIdentity.enrich(mods, entry.gameVersion,
-                (index, remote) -> Platform.runLater(() -> applyRemote(token, index, remote))),
-                "yi-mod-identify");
+        // 识别没跑完之前不要给「还没认出来」的行去找兜底图标：那会让几百行同时去查镜像，
+        // 而且真正的官方图标地址随后就到，白跑一趟还会把行标成「已请求」再也不重试。
+        identifyDone = false;
+        Thread worker = new Thread(() -> {
+            try {
+                ModIdentity.enrich(mods, entry.gameVersion,
+                        (index, remote) -> Platform.runLater(() -> applyRemote(token, index, remote)));
+            } finally {
+                Platform.runLater(() -> {
+                    if (token == flowToken) {
+                        identifyDone = true;
+                        scheduleIconFlush();
+                    }
+                });
+            }
+        }, "yi-mod-identify");
         worker.setDaemon(true);
         worker.start();
     }
@@ -316,24 +334,28 @@ public final class ModsPage extends BorderPane {
 
     /**
      * 图标只给「看得见的那一段」加载：283 个模组一次性去拉 CDN 纯属浪费带宽。
-     * <p>布局还没算出来（拿不到坐标）就退回全量，宁可多下几张也不能让图标永远不出现。</p>
+     * <p>没有图标地址的行（Modrinth 没认出来的）也在这里补：先看 CurseForge 镜像有没有 PNG 缩略图。</p>
      */
     private void flushIcons() {
-        javafx.geometry.Bounds viewport = scroller == null
-                ? null : scroller.localToScene(scroller.getBoundsInLocal());
+        if (scroller == null) {
+            return;
+        }
+        javafx.geometry.Bounds viewport = scroller.localToScene(scroller.getBoundsInLocal());
+        if (viewport == null) {
+            return;   // 还没布局好，等高度变化再刷
+        }
         for (Row row : rows) {
-            if (row.iconRequested || row.iconUrl == null || row.iconUrl.isBlank() || !row.node.isVisible()) {
+            if (row.iconRequested || !row.node.isVisible()) {
                 continue;
             }
-            if (viewport == null) {
-                row.iconRequested = true;
-                loadIcon(row);
+            // 识别没结束、这行也还没认出任何东西 → 先别去查兜底图（否则几百行一起冲镜像）
+            if (!identifyDone && row.remote == null) {
                 continue;
             }
             javafx.geometry.Bounds bounds = row.node.localToScene(row.node.getBoundsInLocal());
             boolean near = bounds == null
-                    || (bounds.getMaxY() >= viewport.getMinY() - 400
-                    && bounds.getMinY() <= viewport.getMaxY() + 400);
+                    || (bounds.getMaxY() >= viewport.getMinY() - 1200
+                    && bounds.getMinY() <= viewport.getMaxY() + 1200);
             if (!near) {
                 continue;
             }
@@ -342,22 +364,54 @@ public final class ModsPage extends BorderPane {
         }
     }
 
-    /** 识别结果是一批一批来的，攒 120ms 再统一刷一次，别每来一个就全表扫一遍。 */
+    /** 识别结果是一批一批来的，攒 120ms 再统一刷一次；正在等就不重复排队，免得一直不触发。 */
     private void scheduleIconFlush() {
         if (iconFlush == null) {
             iconFlush = new PauseTransition(Duration.millis(120));
             iconFlush.setOnFinished(event -> flushIcons());
         }
-        iconFlush.playFromStart();
+        if (iconFlush.getStatus() != javafx.animation.Animation.Status.RUNNING) {
+            iconFlush.playFromStart();
+        }
     }
 
+    /**
+     * 先按项目自己的图标地址拉；没有地址或者拉不到（Modrinth 只给 WebP 的项目），
+     * 就去 CurseForge 镜像找同一张图的 PNG；都没有就保持首字母。
+     */
     private void loadIcon(Row row) {
         int token = flowToken;
-        IconCache.load(row.iconUrl, image -> {
+        String url = row.iconUrl == null ? "" : row.iconUrl;
+        if (url.isBlank()) {
+            loadFallbackIcon(row, token, "");
+            return;
+        }
+        IconCache.load(url, image -> {
             if (token == flowToken) {
                 row.setIcon(image);
             }
-        });
+        }, () -> loadFallbackIcon(row, token, url));
+    }
+
+    /** 去 CurseForge 镜像（免 Key 的 MCIM 通道）找 PNG 缩略图。 */
+    private void loadFallbackIcon(Row row, int token, String tried) {
+        String page = row.remote == null ? "" : row.remote.pageUrl();
+        String title = row.remote != null && !row.remote.title().isBlank()
+                ? row.remote.title() : row.local.name();
+        String modId = row.local.modId();
+        Thread worker = new Thread(() -> {
+            String fallback = ModIdentity.iconFallback(page, title, modId);
+            if (fallback.isBlank() || fallback.equals(tried)) {
+                return;
+            }
+            Platform.runLater(() -> IconCache.load(fallback, image -> {
+                if (token == flowToken) {
+                    row.setIcon(image);
+                }
+            }));
+        }, "yi-icon-fallback");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private Row buildRow(ModIdentity.LocalMod mod) {

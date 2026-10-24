@@ -101,7 +101,11 @@ public final class ModDownload {
     /** 下载到指定目录，返回落地的文件。 */
     public static Path download(ModSearch.Hit hit, String gameVersion, Path dir, LongConsumer onBytes)
             throws Exception {
-        File file = resolve(hit, gameVersion);
+        return download(resolve(hit, gameVersion), dir, onBytes);
+    }
+
+    /** 已经解析出文件信息时直接下（省一次接口查询，进度也能按总大小算百分比）。 */
+    public static Path download(File file, Path dir, LongConsumer onBytes) throws Exception {
         Files.createDirectories(dir);
         Path target = dir.resolve(safeName(file.fileName()));
         Remote.download(file.url(), target, onBytes);

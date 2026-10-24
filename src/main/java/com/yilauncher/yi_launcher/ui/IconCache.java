@@ -25,14 +25,12 @@ import java.util.function.Consumer;
  *
  * <p>踩过的坑，记下来免得再犯：</p>
  * <ul>
- *   <li>以前每个图标开一条线程，模组管理里 283 个模组就是 283 条线程抢带宽，慢得离谱；
- *       现在固定 12 条（网络延迟为主，多几条更快），同一个地址只拉一次，其余挂起等回调
- *       （以前直接把后来的调用丢掉，那些图标就永远不出现了）。</li>
- *   <li>Modrinth 的图标地址是 {@code _96.webp}，JavaFX 的 Image 根本不支持 WebP，
- *       以前全部静默失败。现在统一换成 {@code /data/{id}/icon.png}（同一张图，PNG 版）。</li>
+ *   <li>每个图标一条线程会把带宽和句柄都耗光；现在固定 16 条（网络延迟为主），
+ *       同一个地址只拉一次，其余挂起等回调（以前直接把后来的调用丢掉，那些图标永远不出现）。</li>
+ *   <li>Modrinth 的图标地址是 {@code _96.webp}，JavaFX 的 Image 不支持 WebP，
+ *       以前全部静默失败。现在统一换成 {@code /data/{id}/icon.png}。</li>
  *   <li>单个图标给 6 秒硬超时：某个 CDN 卡住也不会把线程池一直占着。</li>
- *   <li>拉到就按 48px 解码（CF 图标常常 256px，按原尺寸解码纯属浪费），并落盘缓存，
- *       下次打开页面直接读磁盘。</li>
+ *   <li>拉到就按 48px 解码（CF 图标常常 256px），并落盘缓存，下次直接读磁盘。</li>
  * </ul>
  */
 public final class IconCache {
@@ -41,13 +39,18 @@ public final class IconCache {
     private static final int DECODE_SIZE = 48;
     private static final Duration TIMEOUT = Duration.ofSeconds(6);
 
+    /** 一个等待者：成功回调图片，失败回调让调用方自己找备胎图。 */
+    private record Waiter(Consumer<Image> onLoaded, Runnable onFailed) {
+    }
+
     private static final Map<String, Image> CACHE = new ConcurrentHashMap<>();
-    private static final Map<String, List<Consumer<Image>>> WAITERS = new ConcurrentHashMap<>();
+    private static final Map<String, List<Waiter>> WAITERS = new ConcurrentHashMap<>();
     /** 拉取失败的地址，本次运行不再重试（免得反复卡同一条坏链接）。 */
     private static final Set<String> FAILED = ConcurrentHashMap.newKeySet();
     private static final Path DIR = LauncherConfig.defaultFile().getParent().resolve("iconcache");
 
-    private static final ExecutorService POOL = Executors.newFixedThreadPool(12, task -> {
+    /** 图标都是几十 KB 的小图，瓶颈是网络延迟，16 条并发刚好。 */
+    private static final ExecutorService POOL = Executors.newFixedThreadPool(16, task -> {
         Thread thread = new Thread(task, "yi-icon");
         thread.setDaemon(true);
         return thread;
@@ -62,13 +65,21 @@ public final class IconCache {
         return key == null ? null : CACHE.get(key);
     }
 
+    /** 异步取图标；拿到后一定在 FX 线程回调。 */
+    public static void load(String url, Consumer<Image> onLoaded) {
+        load(url, onLoaded, null);
+    }
+
     /**
-     * 异步取图标；拿到后一定在 FX 线程回调。
+     * 同上，但拿不到时会回调 {@code onFailed}（在 FX 线程），调用方可以换成备胎图标。
      * <p>同一个地址并发只发一次请求，其他调用等这一次的结果。</p>
      */
-    public static void load(String url, Consumer<Image> onLoaded) {
+    public static void load(String url, Consumer<Image> onLoaded, Runnable onFailed) {
         String key = normalize(url);
         if (key == null || onLoaded == null) {
+            if (onFailed != null) {
+                onFailed.run();
+            }
             return;
         }
         Image ready = CACHE.get(key);
@@ -77,11 +88,14 @@ public final class IconCache {
             return;
         }
         if (FAILED.contains(key)) {
+            if (onFailed != null) {
+                onFailed.run();
+            }
             return;
         }
-        List<Consumer<Image>> waiters = WAITERS.computeIfAbsent(key, ignored -> new ArrayList<>());
+        List<Waiter> waiters = WAITERS.computeIfAbsent(key, ignored -> new ArrayList<>());
         synchronized (waiters) {
-            waiters.add(onLoaded);
+            waiters.add(new Waiter(onLoaded, onFailed));
             if (waiters.size() > 1) {
                 return;   // 已经有人在拉了，等它的回调
             }
@@ -141,7 +155,7 @@ public final class IconCache {
 
     /* ============================ 抓取 / 解码 ============================ */
 
-    private static void fetch(String url, List<Consumer<Image>> waiters) {
+    private static void fetch(String url, List<Waiter> waiters) {
         Image image = null;
         try {
             image = fromDisk(url);
@@ -158,24 +172,33 @@ public final class IconCache {
                 }
             }
         } catch (Exception ignored) {
-            // 失败就保持首字母
+            // 失败交给 onFailed，界面保持首字母
         }
         WAITERS.remove(url);
         if (image == null) {
             FAILED.add(url);
+            Platform.runLater(() -> {
+                for (Waiter waiter : snapshot(waiters)) {
+                    if (waiter.onFailed() != null) {
+                        waiter.onFailed().run();
+                    }
+                }
+            });
             return;
         }
         CACHE.put(url, image);
         Image ready = image;
         Platform.runLater(() -> {
-            List<Consumer<Image>> callbacks;
-            synchronized (waiters) {
-                callbacks = new ArrayList<>(waiters);
-            }
-            for (Consumer<Image> callback : callbacks) {
-                callback.accept(ready);
+            for (Waiter waiter : snapshot(waiters)) {
+                waiter.onLoaded().accept(ready);
             }
         });
+    }
+
+    private static List<Waiter> snapshot(List<Waiter> waiters) {
+        synchronized (waiters) {
+            return new ArrayList<>(waiters);
+        }
     }
 
     /* ============================ 磁盘缓存 ============================ */

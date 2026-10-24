@@ -65,55 +65,27 @@ public final class SettingsPage extends BorderPane {
         return card;
     }
 
-    /** 账户相关：微软正版登录需要的 Azure 公共客户端 ID。 */
+    /** 账户相关：正版登录的客户端 ID 与 CurseForge Key 都已内置，这里只做说明，不再提供修改入口。 */
     private VBox accountCard() {
-        javafx.scene.control.TextField field = new javafx.scene.control.TextField(ui.msClientId());
-        field.getStyleClass().add("dialog-field");
-        field.setPromptText("Azure 应用的「应用程序(客户端) ID」");
-        field.setPrefWidth(300);
-
-        Label state = Ui.label(ui.msClientId().isBlank()
-                ? "使用内置客户端 ID：微软正版登录可以直接用"
-                : "已改用自己的客户端 ID", "settings-hint");
-        Button save = Ui.ghostButton("保存", null, () -> {
-            String value = field.getText() == null ? "" : field.getText().trim();
-            ui.microsoftClientId = value.isBlank() ? null : value;
-            LauncherEngine.get().config().save();
-            state.setText(value.isBlank() ? "已清空：微软正版登录不可用" : "已保存，重开账户面板即可用正版登录");
-        });
-
-        HBox control = new HBox(8, field, save);
-        control.setAlignment(Pos.CENTER_LEFT);
-
-        Label hint = Ui.label("在 portal.azure.com 注册应用 → 允许「公共客户端流」，"
-                + "把应用程序 ID 填在这里，微软正版登录（设备码）就能用。",
+        Label hint = Ui.label("微软正版登录、CurseForge 官方源都已经内置好，直接用就行，不需要自己填任何 Key。",
                 "settings-hint");
         hint.setWrapText(true);
 
-        // CurseForge 官方 API Key：有它就走官方源，镜像降级为备选
-        javafx.scene.control.TextField cfField = new javafx.scene.control.TextField(ui.cfKey());
-        cfField.getStyleClass().add("dialog-field");
-        cfField.setPromptText("CurseForge API Key（core 后台申请）");
-        cfField.setPrefWidth(300);
-        Label cfState = Ui.label(ui.cfKey().isBlank()
-                ? "没有 Key：整合包模组走 cfwidget / MCIM 镜像"
-                : "已配置：整合包模组优先走 CurseForge 官方源", "settings-hint");
-        Button cfSave = Ui.ghostButton("保存", null, () -> {
-            String value = cfField.getText() == null ? "" : cfField.getText().trim();
-            ui.curseForgeKey = value.isBlank() ? null : value;
-            LauncherEngine.get().config().save();
-            cfState.setText(value.isBlank() ? "已清空：回到镜像源" : "已保存：下次安装优先走官方源");
-        });
-        HBox cfControl = new HBox(8, cfField, cfSave);
-        cfControl.setAlignment(Pos.CENTER_LEFT);
-
         VBox card = new VBox(9,
                 Ui.label("账户", "card-title"),
-                row("微软客户端 ID", "正版登录借用你自己的 Azure 公共客户端，不内置第三方 ID", control),
-                row("CurseForge Key", "填了就用官方源下载整合包模组，失败才回退镜像", cfControl),
-                hint, state, cfState);
+                row("微软正版登录", "设备码登录（microsoft.com/link），内置官方客户端 ID", builtinChip("已内置")),
+                row("CurseForge 官方源", "模组识别走官方指纹接口，图标用官方缩略图", builtinChip("已内置")),
+                hint);
         card.getStyleClass().addAll("card", "card-pad");
         return card;
+    }
+
+    /** 一行只读的「已内置」小标签，替代以前的输入框。 */
+    private Node builtinChip(String text) {
+        Label chip = Ui.label(text, "chip");
+        HBox box = new HBox(chip);
+        box.setAlignment(Pos.CENTER_LEFT);
+        return box;
     }
 
     private VBox aboutCard() {

@@ -56,10 +56,6 @@ public final class LauncherConfig {
         public Double uiOpacity;
         /** 窗口圆角半径（px）。 */
         public Double cornerRadius;
-        /** 微软正版登录用的 Azure 公共客户端 ID（设备码流程），空 = 不可用。 */
-        public String microsoftClientId;
-        /** CurseForge 官方 API Key：有它就走官方源下载，镜像只当备选。 */
-        public String curseForgeKey;
 
         public double speed() {
             return motionSpeed == null || motionSpeed <= 0 ? 1.0 : motionSpeed;
@@ -72,14 +68,6 @@ public final class LauncherConfig {
         public double radius() {
             return cornerRadius == null ? 26 : Math.max(0, Math.min(34, cornerRadius));
         }
-
-        public String msClientId() {
-            return microsoftClientId == null ? "" : microsoftClientId.trim();
-        }
-
-        public String cfKey() {
-            return curseForgeKey == null ? "" : curseForgeKey.trim();
-        }
     }
 
     private final Path file;
@@ -90,6 +78,12 @@ public final class LauncherConfig {
     /** 启动页「选择游戏」里挑定的版本（configKey），没有就用空。 */
     private String chosenVersion;
     private String selectedGroup;
+    /**
+     * 是否已经用正版（微软）账号成功登录过。
+     * <p>Mojang 的规则：离线 / 第三方皮肤站登录只给「确实买过游戏」的人用，
+     * 所以离线与皮肤站登录前必须先完成一次正版登录。</p>
+     */
+    private boolean premiumVerified;
 
 
     private LauncherConfig(Path file) {
@@ -122,12 +116,11 @@ public final class LauncherConfig {
             config.selectedVersion = Json.string(root, "selectedVersion");
             config.chosenVersion = Json.string(root, "chosenVersion");
             config.selectedGroup = Json.string(root, "selectedGroup");
+            config.premiumVerified = Json.bool(root, "premiumVerified", false);
             Map<String, Object> uiMap = Json.map(root.get("ui"));
             config.ui.motionSpeed = decimal(uiMap, "motionSpeed");
             config.ui.uiOpacity = decimal(uiMap, "uiOpacity");
             config.ui.cornerRadius = decimal(uiMap, "cornerRadius");
-            config.ui.microsoftClientId = Json.string(uiMap, "microsoftClientId");
-            config.ui.curseForgeKey = Json.string(uiMap, "curseForgeKey");
             for (Object rawGroup : Json.list(root.get("groups"))) {
                 Map<String, Object> groupMap = Json.map(rawGroup);
                 GroupSettings settings = new GroupSettings();
@@ -206,6 +199,19 @@ public final class LauncherConfig {
         this.selectedGroup = id;
     }
 
+    /** 是否已经用正版账号成功登录过（离线 / 皮肤站登录的前置条件）。 */
+    public boolean premiumVerified() {
+        return premiumVerified;
+    }
+
+    /** 正版登录成功后调用一次，落盘记住。 */
+    public void markPremiumVerified() {
+        if (!premiumVerified) {
+            premiumVerified = true;
+            save();
+        }
+    }
+
     public VersionSettings version(String id) {
         return versions.computeIfAbsent(id, key -> new VersionSettings());
     }
@@ -245,13 +251,12 @@ public final class LauncherConfig {
         sb.append("  \"selectedVersion\": ").append(quote(selectedVersion)).append(",\n");
         sb.append("  \"chosenVersion\": ").append(quote(chosenVersion)).append(",\n");
         sb.append("  \"selectedGroup\": ").append(quote(selectedGroup)).append(",\n");
+        sb.append("  \"premiumVerified\": ").append(premiumVerified).append(",\n");
 
         StringBuilder uiFields = new StringBuilder();
         appendDecimal(uiFields, "motionSpeed", ui.motionSpeed);
         appendDecimal(uiFields, "uiOpacity", ui.uiOpacity);
         appendDecimal(uiFields, "cornerRadius", ui.cornerRadius);
-        appendString(uiFields, "microsoftClientId", ui.microsoftClientId);
-        appendString(uiFields, "curseForgeKey", ui.curseForgeKey);
         sb.append("  \"ui\": {")
                 .append(uiFields.toString().replaceFirst("^,", ""))
                 .append(" },\n");

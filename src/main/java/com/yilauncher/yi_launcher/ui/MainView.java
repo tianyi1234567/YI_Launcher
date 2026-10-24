@@ -862,6 +862,66 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         showPage(String.valueOf(target.getUserData()));
     }
 
+
+    /**
+     * 下载小球：从触发位置弹出一个小球，沿弧线飞向左栏「下载中心」，到达时闪一下图标。
+     * <p>纯装饰，不影响任何布局（小球 unmanaged，用完直接摘掉）。</p>
+     */
+    public void flyToDownloads(Node source) {
+        Node target = null;
+        for (Node row : navRows) {
+            if ("下载中心".equals(String.valueOf(row.getUserData()))) {
+                target = row;
+                break;
+            }
+        }
+        if (source == null || target == null || getScene() == null) {
+            return;
+        }
+        javafx.geometry.Bounds from = source.localToScene(source.getBoundsInLocal());
+        javafx.geometry.Bounds to = target.localToScene(target.getBoundsInLocal());
+        if (from == null || to == null) {
+            return;
+        }
+        javafx.geometry.Point2D start = sceneToLocal(from.getCenterX(), from.getCenterY());
+        javafx.geometry.Point2D end = sceneToLocal(to.getCenterX(), to.getCenterY());
+        double radius = 7;
+
+        javafx.scene.shape.Circle ball = new javafx.scene.shape.Circle(radius);
+        ball.setManaged(false);
+        ball.setMouseTransparent(true);
+        ball.setFill(new javafx.scene.paint.RadialGradient(0, 0, 0.5, 0.5, 0.6, true,
+                javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0, javafx.scene.paint.Color.web("#9AA6FF")),
+                new javafx.scene.paint.Stop(1, javafx.scene.paint.Color.web("#5C6BFF"))));
+        ball.setEffect(new javafx.scene.effect.DropShadow(10,
+                javafx.scene.paint.Color.web("#5C6BFF", 0.55)));
+        ball.relocate(start.getX() - radius, start.getY() - radius);
+        getChildren().add(ball);
+
+        double lift = Math.max(60, Math.abs(start.getX() - end.getX()) * 0.28);
+        javafx.beans.property.DoubleProperty progress = new javafx.beans.property.SimpleDoubleProperty(0);
+        progress.addListener((obs, old, now) -> {
+            double t = now.doubleValue();
+            double x = start.getX() + (end.getX() - start.getX()) * t;
+            double y = start.getY() + (end.getY() - start.getY()) * t - lift * Math.sin(Math.PI * t);
+            ball.relocate(x - radius, y - radius);
+            // 最后 20% 淡出，像是被图标「吸」进去
+            ball.setOpacity(t < 0.8 ? 1 : 1 - (t - 0.8) / 0.2 * 0.85);
+            ball.setScaleX(1 - t * 0.35);
+            ball.setScaleY(1 - t * 0.35);
+        });
+        Node navTarget = target;
+        javafx.animation.Timeline fly = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(javafx.util.Duration.millis(620),
+                        new javafx.animation.KeyValue(progress, 1, Motion.SOFT)));
+        fly.setOnFinished(event -> {
+            getChildren().remove(ball);
+            Motion.pulse(navTarget);
+        });
+        fly.play();
+    }
+
     /** 侧栏底部账户卡：长方形，左边皮肤头像、右边名字 + 登录方式，点一下打开账户面板。 */
     private Node buildAccountCard() {
         accountAvatar = SkinHeads.avatar("", 40);

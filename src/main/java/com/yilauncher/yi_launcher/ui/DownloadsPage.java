@@ -1,5 +1,7 @@
 package com.yilauncher.yi_launcher.ui;
 
+import com.yilauncher.yi_launcher.core.InstallJobs;
+
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -25,6 +27,9 @@ public final class DownloadsPage extends BorderPane {
     private final VBox content = new VBox(12);
     private final VBox dropCard = new VBox(10);
     private final VBox progressCard = new VBox(10);
+    /** 模组资源页发起的下载：一条任务一行，带进度条。 */
+    private final VBox tasksCard = new VBox(8);
+    private final VBox tasksBox = new VBox(10);
 
     private final Label overallNote = Ui.label("", "progress-note");
     private final Label modsNote = Ui.label("", "progress-note");
@@ -53,11 +58,12 @@ public final class DownloadsPage extends BorderPane {
         main.setPadding(new Insets(4, 16, 16, 6));
         VBox header = new VBox(0,
                 Ui.label("下载中心", "section-title"),
-                Ui.label("把整合包 / 模组直接拖进窗口就能装", "section-sub"));
+                Ui.label("把整合包 / 模组直接拖进窗口就能装；模组资源里下载的任务也在这里看进度", "section-sub"));
 
         buildDropCard();
         buildProgressCard();
-        content.getChildren().addAll(dropCard, progressCard);
+        buildTasksCard();
+        content.getChildren().addAll(dropCard, progressCard, tasksCard);
         content.setPadding(new Insets(2, 6, 4, 0));
 
         ScrollPane scroll = new ScrollPane(content);
@@ -97,6 +103,13 @@ public final class DownloadsPage extends BorderPane {
         progressCard.setManaged(false);
     }
 
+    private void buildTasksCard() {
+        tasksCard.getChildren().addAll(Ui.label("下载任务", "card-title"), tasksBox);
+        tasksCard.getStyleClass().addAll("card", "card-pad");
+        tasksCard.setVisible(false);
+        tasksCard.setManaged(false);
+    }
+
     private Node row(Label title, Label note, ProgressBar bar, Label action) {
         HBox head = new HBox(8, title, Ui.spacer(), note);
         head.setAlignment(Pos.CENTER_LEFT);
@@ -115,8 +128,120 @@ public final class DownloadsPage extends BorderPane {
         return bar;
     }
 
-    /* ============================ 进度 ============================ */
+    /* ============================ 模组资源下载任务 ============================ */
 
+    /**
+     * 新建一条下载任务（模组 / 资源包 / 光影），返回句柄供调用方推进度。
+     * <p>任务卡一开始隐藏，有任务才出现；任务结束（成功或失败）后那一行会自己消失，
+     * 不会在下载中心留一排「已完成」。侧栏「下载中心」的数字用 {@link InstallJobs} 计数。</p>
+     */
+    public Task startTask(String title, String kind) {
+        Task task = new Task(title, kind);
+        tasksBox.getChildren().add(0, task.box);
+        tasksCard.setVisible(true);
+        tasksCard.setManaged(true);
+        InstallJobs.begin();
+        task.box.setOpacity(0);
+        task.box.setTranslateY(-10);
+        Motion.opacity(task.box, 1, 200, Motion.SOFT);
+        Motion.translate(task.box, 0, 0, 220, Motion.SOFT);
+        return task;
+    }
+
+    /** 一条下载任务的句柄：进度、完成、失败。全部方法都可以在任意线程调用。 */
+    public final class Task {
+
+        private final VBox box;
+        private final Label note = Ui.label("准备下载", "progress-action");
+        private final ProgressBar bar = bar();
+        private long total;
+        private boolean closed;
+
+        private Task(String title, String kind) {
+            Label name = Ui.label(title, "settings-label");
+            name.setMaxWidth(Double.MAX_VALUE);
+            Label chip = Ui.label(kind == null || kind.isBlank() ? "下载" : kind, "chip");
+            HBox head = new HBox(8, name, Ui.spacer(), chip);
+            head.setAlignment(Pos.CENTER_LEFT);
+            bar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+            box = new VBox(4, head, bar, note);
+            box.setPadding(new Insets(2, 0, 4, 0));
+        }
+
+        /** 知道总大小时调用一次，进度条才有百分比。 */
+        public void size(long bytes) {
+            total = bytes;
+            Platform.runLater(() -> bar.setProgress(bytes > 0 ? 0 : ProgressBar.INDETERMINATE_PROGRESS));
+        }
+
+        public void progress(long done) {
+            Platform.runLater(() -> {
+                if (total > 0) {
+                    bar.setProgress(Math.max(0, Math.min(1, done / (double) total)));
+                    note.setText(kb(done) + " / " + kb(total));
+                } else {
+                    bar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+                    note.setText(kb(done));
+                }
+            });
+        }
+
+        /** 下完：进度条打满、闪一下，1.4 秒后自己从下载中心消失（不留残影）。 */
+        public void done(String fileName) {
+            Platform.runLater(() -> {
+                bar.setProgress(1);
+                note.setText("已完成 · " + fileName);
+                Motion.pulse(note);
+                closeLater(1400);
+            });
+        }
+
+        /** 失败：红字留 8 秒给人看清，然后同样自己消失。 */
+        public void fail(String message) {
+            Platform.runLater(() -> {
+                bar.setProgress(0);
+                note.setText("失败：" + (message == null ? "未知错误" : message));
+                note.getStyleClass().add("danger-title");
+                closeLater(8000);
+            });
+        }
+
+        private void closeLater(long ms) {
+            PauseTransition wait = new PauseTransition(Duration.millis(ms));
+            wait.setOnFinished(event -> close());
+            wait.play();
+        }
+
+        /** 从任务卡里移除；计数 -1，最后一个任务消失时整张卡收起。 */
+        private void close() {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            Motion.opacity(box, 0, 180, Motion.SOFT);
+            Motion.translate(box, 0, -8, 200, Motion.SOFT);
+            PauseTransition wait = new PauseTransition(Duration.millis(210));
+            wait.setOnFinished(event -> {
+                tasksBox.getChildren().remove(box);
+                InstallJobs.finish();
+                if (tasksBox.getChildren().isEmpty()) {
+                    tasksCard.setVisible(false);
+                    tasksCard.setManaged(false);
+                }
+            });
+            wait.play();
+        }
+
+        private String kb(long bytes) {
+            if (bytes < 1024) {
+                return bytes + " B";
+            }
+            if (bytes < 1024 * 1024) {
+                return (bytes / 1024) + " KB";
+            }
+            return String.format(java.util.Locale.ROOT, "%.1f MB", bytes / 1024.0 / 1024.0);
+        }
+    }
     /** 拖入整合包：拖入卡片下滑淡出 → 进度卡从上往下逐层淡入。 */
     public void beginPack(String packName, String loaderLabel) {
         busy = true;

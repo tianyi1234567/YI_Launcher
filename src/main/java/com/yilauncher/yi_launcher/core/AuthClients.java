@@ -123,13 +123,16 @@ public final class AuthClients {
     public record MsDeviceCode(String deviceCode, String userCode, String verificationUri, int intervalSeconds) {
     }
 
+    /**
+     * 微软正版登录用的客户端 ID（Azure 公共客户端，设备码流程）。
+     * <p>已经内置并写死，设置页不再暴露；只有开发者临时调试才用 {@code -Dyi.msClientId=} 覆盖。</p>
+     */
     private static String clientId() {
         String override = System.getProperty("yi.msClientId");
         if (override != null && !override.isBlank()) {
             return override.trim();
         }
-        String saved = LauncherConfig.load().ui().msClientId();
-        return saved.isBlank() ? DEFAULT_MS_CLIENT_ID : saved;
+        return DEFAULT_MS_CLIENT_ID;
     }
 
     public static MsDeviceCode microsoftStart() {

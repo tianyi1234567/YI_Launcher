@@ -659,6 +659,13 @@ public final class VersionsPage extends BorderPane {
         }
         row.getStyleClass().add("version-row");
         row.setMaxWidth(Double.MAX_VALUE);
+        if (active) {
+            // 选中反馈：整行换成这个版本自己的配色（每个版本 accent 不同）
+            row.getStyleClass().add("active");
+            row.setStyle("-fx-background-color: linear-gradient(to right, "
+                    + Accents.rgba(version.accent, 0.34) + ", " + Accents.rgba(version.accent, 0.16) + ");"
+                    + "-fx-border-color: " + Accents.rgba(version.accent, 0.58) + ";");
+        }
         row.setOnMouseClicked(e -> {
             engine.select(version);
             rebuildList();
@@ -831,6 +838,14 @@ public final class VersionsPage extends BorderPane {
         openBtn.setTooltip(new javafx.scene.control.Tooltip("打开版本文件夹"));
         openBtn.setOnAction(e -> openFolder(version));
 
+        // 删除版本：红色垃圾桶，位置在「打开版本文件夹」后面
+        Button deleteBtn = new Button();
+        deleteBtn.getStyleClass().addAll("trash-btn", "icon-btn");
+        deleteBtn.setGraphic(Icons.icon(Icons.TRASH, 17, "trash-icon"));
+        deleteBtn.setFocusTraversable(false);
+        deleteBtn.setTooltip(new javafx.scene.control.Tooltip("删除这个版本"));
+        deleteBtn.setOnAction(e -> confirmDeleteVersion(version));
+
         boolean chosen = LauncherEngine.get().chosen() == version;
         Button pickBtn = new Button("选择游戏");
         pickBtn.getStyleClass().add("ghost-btn");
@@ -846,9 +861,97 @@ public final class VersionsPage extends BorderPane {
             }));
         });
 
-        HBox header = new HBox(9, texts, Ui.spacer(), pickBtn, launchBtn, openBtn);
+        HBox header = new HBox(9, texts, Ui.spacer(), pickBtn, launchBtn, openBtn, deleteBtn);
         header.setAlignment(Pos.CENTER_LEFT);
         return header;
+    }
+
+    /* ============================ 删除版本 ============================ */
+
+    /** 删除前的二次确认：真的会消失很久，所以文案写清楚 + 红色按钮。 */
+    private void confirmDeleteVersion(VersionEntry version) {
+        if (overlay == null) {
+            return;
+        }
+        Label title = Ui.label("删除版本", "dialog-title", "danger-title");
+        Label warn = Ui.label("你确定要删除这个版本吗（真的会消失很久！）", "dialog-warn");
+        warn.setWrapText(true);
+        warn.setMaxWidth(340);
+        Label path = Ui.label(version.dir.toString(), "path-pill");
+        path.setMaxWidth(340);
+        Label note = Ui.label(version.isolation
+                ? "版本文件夹里的存档、模组、配置会一起删掉，删完只能重新下载。"
+                : "这个版本没开隔离：只删版本本身，根目录的 mods / saves / config 是共用的，不会被删。",
+                "dialog-hint");
+        note.setWrapText(true);
+        note.setMaxWidth(340);
+
+        Button cancel = Ui.ghostButton("取消", null, overlay::hide);
+        Button confirm = Ui.primaryButton("删除", null, () -> {
+            overlay.hide();
+            deleteVersionFiles(version);
+        });
+        confirm.getStyleClass().add("danger-btn");
+        confirm.setMinHeight(34);
+        confirm.setPrefHeight(34);
+
+        HBox buttons = new HBox(8, Ui.spacer(), cancel, confirm);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+
+        showDialog(new VBox(10, title, warn, note, path, buttons), "danger-card");
+    }
+
+    /** 后台把版本目录整个删掉，删完重新扫描并选中同组剩下的第一个版本。 */
+    private void deleteVersionFiles(VersionEntry version) {
+        statusLabel.setText("正在删除「" + version.displayName + "」…");
+        String key = version.configKey();
+        Thread worker = new Thread(() -> {
+            String failure = null;
+            try {
+                deleteRecursively(version.dir);
+            } catch (Exception error) {
+                failure = error.getClass().getSimpleName() + " " + error.getMessage();
+            }
+            String message = failure;
+            Platform.runLater(() -> {
+                if (message != null) {
+                    statusLabel.setText("删除失败：" + message);
+                    return;
+                }
+                // 被删掉的版本既不能继续「选中」，也不能继续当「已选择游戏」
+                VersionEntry chosen = LauncherEngine.get().chosen();
+                if (chosen != null && key.equals(chosen.configKey())) {
+                    LauncherEngine.get().choose(null);
+                }
+                engine.select(null);
+                engine.scanAsync(list -> Platform.runLater(() -> {
+                    rebuildGroupRail();
+                    if (filterRow != null) {
+                        rebuildFilterChips(filterRow);
+                    }
+                    VersionEntry next = firstInGroup(engine.selectedGroup().id);
+                    engine.select(next);
+                    rebuildList();
+                    showDetail(next);
+                    statusLabel.setText("已删除「" + version.displayName + "」");
+                }));
+            });
+        }, "yi-delete-version");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    private static void deleteRecursively(java.nio.file.Path dir) throws java.io.IOException {
+        if (dir == null || !java.nio.file.Files.exists(dir)) {
+            return;
+        }
+        try (var walk = java.nio.file.Files.walk(dir)) {
+            java.util.List<java.nio.file.Path> all = walk.sorted(java.util.Comparator.reverseOrder())
+                    .toList();
+            for (java.nio.file.Path path : all) {
+                java.nio.file.Files.deleteIfExists(path);
+            }
+        }
     }
 
     private Node pathRow(VersionEntry version) {

@@ -501,19 +501,35 @@ public final class ResourcesPage extends BorderPane {
     private void startDownload(ModSearch.Hit hit, VersionEntry entry) {
         searchStatus.setText("正在下载 " + hit.title() + "…");
         String gameVersion = entry == null ? "" : entry.gameVersion;
+        // 1) 下载中心里先挂一条任务；2) 一个小球飞过去，告诉用户「东西去那边了」
+        DownloadsPage.Task task = host.downloadsPage().startTask(hit.title(),
+                kindLabel(hit.kind()));
+        host.flyToDownloads(downloadButton);
         Thread worker = new Thread(() -> {
             try {
                 var dir = ModDownload.targetDir(entry);
-                var file = ModDownload.download(hit, gameVersion, dir,
-                        done -> Platform.runLater(() -> searchStatus.setText(
-                                "正在下载 " + hit.title() + " · " + (done / 1024) + " KB")));
-                Platform.runLater(() -> searchStatus.setText("已下载到 " + file.getFileName()));
+                ModDownload.File file = ModDownload.resolve(hit, gameVersion);
+                task.size(file.size());
+                var saved = ModDownload.download(file, dir,
+                        done -> task.progress(done));
+                task.done(saved.getFileName().toString());
+                Platform.runLater(() -> searchStatus.setText("已下载到 " + saved.getFileName()));
             } catch (Exception error) {
+                task.fail(error.getMessage() == null ? "未知错误" : error.getMessage());
                 Platform.runLater(() -> searchStatus.setText("下载失败：" + error.getMessage()));
             }
         }, "yi-resource-download");
         worker.setDaemon(true);
         worker.start();
+    }
+
+    private static String kindLabel(String kind) {
+        String value = kind == null ? "" : kind.toUpperCase(Locale.ROOT);
+        return switch (value) {
+            case "RESOURCE_PACK", "RESOURCEPACK" -> "资源包";
+            case "SHADER" -> "光影";
+            default -> "模组";
+        };
     }
 
     /* ============================ 查看详情 / 收藏 ============================ */
