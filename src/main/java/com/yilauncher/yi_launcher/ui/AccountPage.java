@@ -82,51 +82,58 @@ public final class AccountPage extends BorderPane {
 
     /* ============================ 正版登录（金光） ============================ */
 
+    /**
+     * 正版登录卡：授权码 + PKCE。
+     * <p>点一下直接用系统浏览器打开微软登录页，授权码由本机 127.0.0.1 的随机端口接回来，
+     * 界面上不会再出现「验证码」这种能被旁人抄走的东西。</p>
+     */
     private Node microsoftCard() {
         Label title = Ui.label("正版登录", "account-card-title");
 
-        Label code = Ui.label("", "ms-code");
-        Label link = Ui.label("", "dialog-hint");
-        link.setWrapText(true);
-        HBox codeButtons = new HBox(6,
-                Ui.ghostButton("打开浏览器", null, () -> openUrl(link.getText())),
-                Ui.ghostButton("复制代码", null, () -> copy(code.getText())));
-        VBox codeBox = new VBox(7, code, link, codeButtons);
-        codeBox.getStyleClass().add("ms-code-box");
-        codeBox.setVisible(false);
-        codeBox.setManaged(false);
+        Button reopen = Ui.ghostButton("重新打开登录页", null, null);
+        reopen.setVisible(false);
+        reopen.setManaged(false);
 
-        Button start = Ui.primaryButton("获取微软验证码", null, null);
+        Button start = Ui.primaryButton("用浏览器登录微软账号", null, null);
         start.setOnAction(e -> {
             final int token = ++flowToken;
             start.setDisable(true);
-            codeBox.setVisible(false);
-            codeBox.setManaged(false);
-            setStatus("正在向微软请求验证码…", false);
+            reopen.setVisible(false);
+            reopen.setManaged(false);
+            setStatus("正在准备微软登录…", false);
             async(() -> {
-                AuthClients.MsDeviceCode device = AuthClients.microsoftStart();
+                AuthClients.MsAuthSession session = AuthClients.microsoftBegin();
                 Platform.runLater(() -> {
                     if (token != flowToken) {
                         return;
                     }
-                    code.setText(device.userCode());
-                    link.setText(device.verificationUri());
-                    codeBox.setVisible(true);
-                    codeBox.setManaged(true);
-                    setStatus("在浏览器里输入 " + device.userCode() + "，这里会自动等到登录成功…", false);
+                    reopen.setOnAction(retry -> openUrl(session.authUrl()));
+                    reopen.setVisible(true);
+                    reopen.setManaged(true);
+                    setStatus("已用浏览器打开微软登录页，登录完成后会自动回到这里…", false);
+                    openUrl(session.authUrl());
                 });
-                openUrl(device.verificationUri());
-                Account account = AuthClients.microsoftWait(device);
-                if (token == flowToken) {
-                    // 正版登录成功 = 这个玩家确实有游戏，之后离线 / 皮肤站登录才放行
-                    LauncherEngine.get().config().markPremiumVerified();
-                    finish(account);
+                try {
+                    Account account = session.awaitAccount();
+                    if (token == flowToken) {
+                        // 正版登录成功 = 这个玩家确实有游戏，之后离线 / 皮肤站登录才放行
+                        LauncherEngine.get().config().markPremiumVerified();
+                        finish(account);
+                    }
+                } finally {
+                    // 回调服务器用完就关，不留一个在后台监听
+                    session.close();
+                    Platform.runLater(() -> {
+                        reopen.setVisible(false);
+                        reopen.setManaged(false);
+                        start.setDisable(false);
+                    });
                 }
             });
         });
         buttons.add(start);
 
-        VBox box = new VBox(9, title, start, codeBox);
+        VBox box = new VBox(9, title, start, reopen);
         box.getStyleClass().add("card-pad");
         return goldCard(box);
     }
@@ -203,7 +210,7 @@ public final class AccountPage extends BorderPane {
                 Motion.translate(scroller, 0, 0, 1, Motion.SOFT);
                 scroller.setVvalue(0);
             }
-            setStatus("在上面那张金色卡片里点「获取微软验证码」", false);
+            setStatus("在上面那张金色卡片里点「用浏览器登录微软账号」", false);
         });
         HBox buttonsRow = new HBox(8, Ui.spacer(), cancel, go);
         buttonsRow.setAlignment(Pos.CENTER_RIGHT);
