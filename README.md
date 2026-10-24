@@ -101,6 +101,6 @@ For reposting, redistribution, or commercial licensing, please contact the autho
 
 <div align="center">
 
-**© [年份 / Year] [作者 / Author]. All Rights Reserved.**
+**© [2026 10 23 / 23 10 2026] [天衣 / TianYi]. All Rights Reserved.**
 
 </div>
