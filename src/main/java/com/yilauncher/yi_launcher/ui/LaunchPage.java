@@ -27,8 +27,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
@@ -39,6 +41,11 @@ public final class LaunchPage extends BorderPane {
 
     private static final DateTimeFormatter CLOCK = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.CHINA);
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("M 月 d 日 EEEE", Locale.CHINA);
+
+    /** 各版本的实际发布日期：用来算「今天 / 昨天 / N 天前」，不再写死成「今天」。 */
+    private static final LocalDate DATE_0_1_0 = LocalDate.of(2026, 10, 24);
+    private static final LocalDate DATE_0_0_9 = LocalDate.of(2026, 10, 23);
+    private static final LocalDate DATE_0_0_X = LocalDate.of(2026, 10, 22);
 
     private final LauncherEngine engine = LauncherEngine.get();
 
@@ -839,7 +846,7 @@ public final class LaunchPage extends BorderPane {
         head.setAlignment(Pos.CENTER_LEFT);
 
         VBox card = new VBox(0, head,
-                noticeRow("0.1.0 版本已基本完成", "今天 · 重要", true),
+                noticeRow("0.1.0 版本已基本完成", relativeDay(DATE_0_1_0) + " · 重要", true),
                 noticePlaceholder(),
                 noticePlaceholder());
         card.getStyleClass().addAll("card", "card-pad");
@@ -879,18 +886,18 @@ public final class LaunchPage extends BorderPane {
     /** 公告点击后的二次窗口：滚动查看历史更新记录。 */
     private void openChangelog() {
         VBox list = new VBox(8,
-                changelogSection("0.1.0", "今天 · 基本完成",
+                changelogSection("0.1.0", relativeDay(DATE_0_1_0) + " · 基本完成",
                         "版本管理：分组栏位、添加版本、版本隔离确认",
                         "启动：扫描真实 .minecraft 目录、自动挑 Java、缺库自动下载",
                         "内存：按模组数量自动推荐，可自定义滑块与精确 MB",
                         "界面：玻璃主题与顺滑动画，窗口可拖动、可改大小",
                         "快捷目录：一键打开 Mod / 存档 / 截图 / 光影",
                         "账户：微软正版 / 离线 / LittleSkin 登录，左下角显示皮肤头像与登录方式"),
-                changelogSection("0.0.9", "上周",
+                changelogSection("0.0.9", relativeDay(DATE_0_0_9),
                         "版本列表、详情卡与详情模块配色",
                         "扫描本机 Java 运行时（Corretto / Zulu / 1.8）",
                         "启动参数可预览、可干跑校验"),
-                changelogSection("0.0.x", "最早的原型",
+                changelogSection("0.0.x", relativeDay(DATE_0_0_X) + " · 最早的原型",
                         "启动页实时显示 CPU / 内存 / 系统时间",
                         "真实启动进程，日志落在 .minecraft/logs",
                         "网页原型迁移到 JavaFX 玻璃界面"));
@@ -911,9 +918,8 @@ public final class LaunchPage extends BorderPane {
         HBox foot = new HBox(8, Ui.spacer(), close);
         foot.setAlignment(Pos.CENTER_RIGHT);
 
-        VBox content = new VBox(10,
+        VBox content = new VBox(12,
                 Ui.label("历史更新记录", "dialog-title"),
-                Ui.label("衣启动器 · 从原型到 0.1.0", "dialog-hint"),
                 scroll,
                 foot);
         if (overlay == null) {
@@ -945,6 +951,18 @@ public final class LaunchPage extends BorderPane {
             box.getChildren().add(item);
         }
         return box;
+    }
+
+    /** 把发布日期换算成相对天数：今天 / 昨天 / N 天前。 */
+    private static String relativeDay(LocalDate date) {
+        long days = ChronoUnit.DAYS.between(date, LocalDate.now());
+        if (days <= 0) {
+            return "今天";
+        }
+        if (days == 1) {
+            return "昨天";
+        }
+        return days + " 天前";
     }
 
     private VBox buildStatusCard() {

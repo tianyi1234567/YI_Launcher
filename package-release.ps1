@@ -47,8 +47,7 @@ $m2 = Join-Path $env:USERPROFILE '.m2\repository'
 $javafx = @(
   'org\openjfx\javafx-base\21.0.6\javafx-base-21.0.6-win.jar',
   'org\openjfx\javafx-graphics\21.0.6\javafx-graphics-21.0.6-win.jar',
-  'org\openjfx\javafx-controls\21.0.6\javafx-controls-21.0.6-win.jar',
-  'org\openjfx\javafx-fxml\21.0.6\javafx-fxml-21.0.6-win.jar'
+  'org\openjfx\javafx-controls\21.0.6\javafx-controls-21.0.6-win.jar'
 )
 foreach ($rel in $javafx) {
   $src = Join-Path $m2 $rel
@@ -78,7 +77,7 @@ $cmdLines = @(
   '  pause',
   '  exit /b 1',
   ')',
-  'start "" javaw --module-path "%DIR%lib" --add-modules javafx.controls,javafx.fxml -cp "%DIR%app.jar;%DIR%ext\*" com.yilauncher.yi_launcher.LauncherApp',
+  'start "" javaw --module-path "%DIR%lib" --add-modules javafx.controls -cp "%DIR%app.jar;%DIR%ext\*" com.yilauncher.yi_launcher.LauncherApp',
   'endlocal'
 )
 Set-Content -Path (Join-Path $root 'dist\run.cmd') -Value ($cmdLines -join "`r`n") -Encoding OEM

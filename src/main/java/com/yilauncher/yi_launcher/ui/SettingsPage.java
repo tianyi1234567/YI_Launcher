@@ -53,9 +53,9 @@ public final class SettingsPage extends BorderPane {
         VBox card = new VBox(16,
                 Ui.label("外观与动效", "card-title"),
                 row("动效速度", "弹出、淡入、滑动等所有动效的播放速度",
-                        chips("speed", new String[]{"悠缓", "标准", "轻快", "关闭"},
-                                new double[]{0.75, 1.0, 1.35, 3.0}, ui.speed())),
-                row("界面不透明度", "调低后整块玻璃更透，能看见后面的桌面与窗口",
+                        chips("speed", new String[]{"悠慢", "标准", "轻快", "关闭"},
+                                new double[]{0.5, 0.75, 1.0, 3.0}, ui.speed())),
+                row("界面不透明度", "100% 时完全不透明；调低后能看见后面的桌面与窗口",
                         chips("opacity", new String[]{"100%", "92%", "85%", "75%"},
                                 new double[]{1.0, 0.92, 0.85, 0.75}, ui.opacity())),
                 row("窗口圆角", "无边框窗口的圆角大小，最大化时自动变直角",
@@ -67,15 +67,10 @@ public final class SettingsPage extends BorderPane {
 
     /** 账户相关：正版登录的客户端 ID 与 CurseForge Key 都已内置，这里只做说明，不再提供修改入口。 */
     private VBox accountCard() {
-        Label hint = Ui.label("微软正版登录、CurseForge 官方源都已经内置好，直接用就行，不需要自己填任何 Key。",
-                "settings-hint");
-        hint.setWrapText(true);
-
         VBox card = new VBox(9,
                 Ui.label("账户", "card-title"),
-                row("微软正版登录", "设备码登录（microsoft.com/link），内置官方客户端 ID", builtinChip("已内置")),
-                row("CurseForge 官方源", "模组识别走官方指纹接口，图标用官方缩略图", builtinChip("已内置")),
-                hint);
+                row("微软正版登录", "", builtinChip("已内置")),
+                row("CurseForge 官方源", "", builtinChip("已内置")));
         card.getStyleClass().addAll("card", "card-pad");
         return card;
     }
@@ -89,7 +84,7 @@ public final class SettingsPage extends BorderPane {
     }
 
     private VBox aboutCard() {
-        Label hint = Ui.label("衣启动器 v0.1.0 · JavaFX 21 玻璃主题", "settings-hint");
+        Label hint = Ui.label("衣启动器 v0.1.0 · JavaFX 21", "settings-hint");
         Button open = Ui.ghostButton("打开配置目录", Icons.FOLDER, this::openConfigDir);
 
         HBox line = new HBox(10, Ui.label("配置文件", "settings-label"), Ui.spacer(), open);

@@ -1834,6 +1834,15 @@
     -fx-padding: 2px 6px 0 0;
 }
 
+/* 搜索还在等结果时的居中转圈 */
+.search-loading {
+    -fx-progress-color: #6c7cff;
+}
+
+.search-loading-box {
+    -fx-alignment: center;
+}
+
 .favorite-remove {
     -fx-font-size: 11px;
 }

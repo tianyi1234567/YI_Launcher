@@ -261,11 +261,10 @@ public final class DropInstall {
                         Runnable showResult = () -> {
                             HBox ok2 = new HBox(8, Ui.spacer(), Ui.primaryButton("知道了", null, overlay::hide));
                             ok2.setAlignment(Pos.CENTER_RIGHT);
-                            String detail = "写入 " + result.files() + " 个文件，其中 " + result.mods()
-                                    + " 个模组；下载 " + result.downloaded() + " 个"
-                                    + (result.failed() > 0 ? "，失败 " + result.failed() + " 个" : "")
-                                    + "；版本列表里会多出「" + target + "」";
-                            overlay.show(card("整合包已安装", "位置：" + result.folder(), detail, ok2));
+                            String detail = "装到 " + result.folder() + "\n"
+                                    + "分组：" + target + " · 模组：" + result.mods() + " 个"
+                                    + (result.failed() > 0 ? "（失败 " + result.failed() + " 个）" : "");
+                            overlay.show(card("整合包已安装", detail, "", ok2));
                         };
                         if (page != null) {
                             page.finishPack(showResult);

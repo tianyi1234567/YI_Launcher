@@ -1024,7 +1024,8 @@ public final class VersionsPage extends BorderPane {
         memoryWarningLabel.setVisible(version.memoryTooLow());
         memoryWarningLabel.setManaged(version.memoryTooLow());
 
-        Label hint = Ui.label("自动：" + MemoryRecommendation.reason(version.modsCount), "field-hint");
+        Label hint = Ui.label("推荐分配 "
+                + MemoryRecommendation.asText(MemoryRecommendation.forMods(version.modsCount)), "field-hint");
         VBox block = new VBox(4, row, hint, memoryWarningLabel);
         return block;
     }
@@ -1205,9 +1206,8 @@ public final class VersionsPage extends BorderPane {
         group.add(full);
         group.add(custom);
         group.forEach(Motion::pressFade);
-
         return settingRow("窗口尺寸", def, full, custom, value,
-                Ui.label("启动时按这个尺寸开窗", "field-hint"));
+                Ui.label("游戏启动时的分辨率", "field-hint"));
     }
 
     /** 自定义窗口分辨率：宽 × 高，附几个常见尺寸。 */
@@ -1311,7 +1311,7 @@ public final class VersionsPage extends BorderPane {
         group.add(shared);
         group.forEach(Motion::pressFade);
         return settingRow("版本隔离", isolated, shared, Ui.label(groupLevel
-                ? "整个「" + owning.name + "」分组一起切换"
+                ? "更改后整个分组的所有版本都会融合"
                 : "隔离后该版本的模组 / 存档互不影响", "field-hint"));
     }
 

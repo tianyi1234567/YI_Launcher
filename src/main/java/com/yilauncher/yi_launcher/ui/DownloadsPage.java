@@ -58,7 +58,7 @@ public final class DownloadsPage extends BorderPane {
         main.setPadding(new Insets(4, 16, 16, 6));
         VBox header = new VBox(0,
                 Ui.label("下载中心", "section-title"),
-                Ui.label("把整合包 / 模组直接拖进窗口就能装；模组资源里下载的任务也在这里看进度", "section-sub"));
+                Ui.label("拖动整合包或者模组到启动器可直接进行安装", "section-sub"));
 
         buildDropCard();
         buildProgressCard();
@@ -77,18 +77,15 @@ public final class DownloadsPage extends BorderPane {
     }
 
     private void buildDropCard() {
-        Label hint = Ui.label("把 CurseForge / Modrinth 整合包（.zip）或模组（.jar）拖到窗口任意位置", "settings-hint");
-        hint.setWrapText(true);
 
         VBox zone = new VBox(6,
                 Ui.label("⬇", "drop-glyph"),
-                Ui.label("拖到这里松手即可安装", "drop-title"),
-                Ui.label("整合包会先问名称和分组；模组装进当前选择的版本", "settings-hint"));
+                Ui.label("拖到这里松手即可安装", "drop-title"));
         zone.getStyleClass().add("drop-zone");
         zone.setAlignment(Pos.CENTER);
         zone.setPadding(new Insets(22, 16, 22, 16));
 
-        dropCard.getChildren().addAll(Ui.label("拖入安装", "card-title"), hint, zone);
+        dropCard.getChildren().addAll(Ui.label("拖入安装", "card-title"), zone);
         dropCard.getStyleClass().addAll("card", "card-pad");
     }
 

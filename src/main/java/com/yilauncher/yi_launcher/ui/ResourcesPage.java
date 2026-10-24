@@ -147,7 +147,7 @@ public final class ResourcesPage extends BorderPane {
 
         chooser.getChildren().addAll(
                 new VBox(0, Ui.label("模组资源", "section-title"),
-                        Ui.label("想下什么就点哪个方块", "section-sub")),
+                        Ui.label("要什么点什么~", "section-sub")),
                 cardGrid());
         chooser.setPadding(new Insets(0, 4, 4, 0));
 
@@ -300,6 +300,7 @@ public final class ResourcesPage extends BorderPane {
         searchStatus.setText("正在搜索…");
         prevPage.setDisable(true);
         nextPage.setDisable(true);
+        showLoading(results, "正在搜索…");
         Thread worker = new Thread(() -> {
             try {
                 ModSearch.Page result = ModSearch.search(query, kind, target, PAGE_SIZE);
@@ -330,6 +331,7 @@ public final class ResourcesPage extends BorderPane {
     }
 
     private void renderHits(List<ModSearch.Hit> hits) {
+        hideLoading(results);
         results.getChildren().clear();
         selected = null;
         refreshActions();
@@ -550,6 +552,25 @@ public final class ResourcesPage extends BorderPane {
         }
     }
 
+    /** 结果区还没内容时放一个转圈，别让用户对着空白发呆。 */
+    private void showLoading(VBox box, String text) {
+        javafx.scene.control.ProgressIndicator spinner = new javafx.scene.control.ProgressIndicator();
+        spinner.getStyleClass().add("search-loading");
+        spinner.setPrefSize(40, 40);
+        spinner.setMaxSize(40, 40);
+        spinner.setMinSize(40, 40);
+        VBox loading = new VBox(10, spinner, Ui.label(text, "version-meta"));
+        loading.setAlignment(Pos.CENTER);
+        loading.setPadding(new Insets(70, 0, 40, 0));
+        loading.getStyleClass().add("search-loading-box");
+        box.getChildren().setAll(loading);
+    }
+
+    /** 清掉转圈（结果渲染前调用）。 */
+    private void hideLoading(VBox box) {
+        box.getChildren().removeIf(node -> node.getStyleClass().contains("search-loading-box"));
+    }
+
     /** 查看详情：跟模组管理里选中模组同款面板。 */
     private void openDetails(String title, String keyword) {
         VBox card = new VBox(11);
@@ -559,7 +580,7 @@ public final class ResourcesPage extends BorderPane {
 
         VBox titles = new VBox(2,
                 Ui.label("查看详情 · " + (title == null || title.isBlank() ? "这个项目" : title), "dialog-title"),
-                Ui.label("选一个网站，会自动搜这个项目", "dialog-hint"));
+                Ui.label("当前查看系统未全部完成，仅支持搜索", "dialog-hint"));
         Button close = Ui.ghostButton("关闭", null, host::hide);
         HBox head = new HBox(10, titles, Ui.spacer(), close);
         head.setAlignment(Pos.CENTER_LEFT);
@@ -597,6 +618,7 @@ public final class ResourcesPage extends BorderPane {
 
         HBox bar = new HBox(10, back, favoriteSearch, Ui.spacer(), favoriteStatus);
         bar.setAlignment(Pos.CENTER_LEFT);
+
         bar.getStyleClass().add("resource-search-bar");
 
         String[][] filters = {{"ALL", "全部"}, {"MOD", "模组"}, {"RESOURCE_PACK", "材质包"}, {"SHADER", "光影包"}};
@@ -805,6 +827,7 @@ public final class ResourcesPage extends BorderPane {
             return;
         }
         vanillaStatus.setText("正在读取版本列表…");
+        showLoading(vanillaList, "正在读取版本列表…");
         Thread worker = new Thread(() -> {
             try {
                 List<VanillaVersions.Version> list = VanillaVersions.manifest();

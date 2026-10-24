@@ -52,7 +52,7 @@ public final class LauncherConfig {
     public static final class UiSettings {
         /** 动效速度倍率：1.0 = 标准，越小越慢。 */
         public Double motionSpeed;
-        /** 玻璃整体不透明度：0.7 – 1.0。 */
+        /** 玻璃整体不透明度：0.6 – 1.0（默认 0.85）。 */
         public Double uiOpacity;
         /** 窗口圆角半径（px）。 */
         public Double cornerRadius;
@@ -61,8 +61,9 @@ public final class LauncherConfig {
             return motionSpeed == null || motionSpeed <= 0 ? 1.0 : motionSpeed;
         }
 
+        /** 默认 85%：既有玻璃感又不至于透到看不清字。 */
         public double opacity() {
-            return uiOpacity == null ? 1.0 : Math.max(0.5, Math.min(1.0, uiOpacity));
+            return uiOpacity == null ? 0.85 : Math.max(0.5, Math.min(1.0, uiOpacity));
         }
 
         public double radius() {

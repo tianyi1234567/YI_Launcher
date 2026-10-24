@@ -12,6 +12,17 @@
   run.cmd      启动脚本
   ```
 
+## 单文件版（推荐分发）
+
+- `dist\YI_Launcher.exe`：一个文件就能发，JavaFX 21 + JNA 都打包在里面（约 10 MB），**不含 Java**。
+- 双击后先找本机的 Java 21+：JAVA_HOME、注册表、PATH、Program Files 常见 JDK 目录、
+  以及 Minecraft 自带的运行时都会查一遍。找到就直接拉起界面；
+  找不到（或只装了 Java 8/17）会弹窗提示安装 Java 21，并可一键打开 Temurin / Oracle 官方下载页。
+- 首次启动把内置运行库解到 `%LOCALAPPDATA%\YI_Launcher\runtime\<指纹>`，之后再启动是秒开；
+  换了新版本会自动清掉旧的解压目录。
+- 打包命令：`powershell -ExecutionPolicy Bypass -File .\build-exe.ps1`
+  （内部先跑 `package-release.ps1`，再把 `dist\` 的内容打成单文件 exe）。
+
 ## CurseForge Key（源码内置）
 
 - 官方 API Key 直接写在 `core/CurseForge.java` 的 `BUILTIN_KEY` 常量里，开箱即用，设置页不提供修改入口。
@@ -31,6 +42,8 @@
 
 - [ ] `package-release.ps1` 能跑完（内部是 `mvn -o compile` + JDK `jar` 打包）
 - [ ] `dist\run.cmd` 能正常启动，主界面无异常
+- [ ] `dist\YI_Launcher.exe` 双击能直接打开（本机装 Java 21 的前提下）
+- [ ] 把 Java 藏起来时 exe 会弹「请安装 Java 21」并能跳到下载页
 - [ ] 版本管理：选中反馈、删除版本二次确认
 - [ ] 模组管理：真实整合包目录能出图标（走 CurseForge 官方缩略图）
 - [ ] 模组资源：搜索 / 下载确认 / 小球飞向下载中心 / 下载中心任务完成后自动消失

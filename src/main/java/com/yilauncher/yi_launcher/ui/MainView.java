@@ -73,7 +73,7 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
 
     /** 设置页调过的界面参数：圆角半径、整体不透明度。 */
     private double uiRadius = 26;
-    private double uiOpacity = 1;
+    private double uiOpacity = 0.85;
     private boolean closing;
 
     /* 拖动 / 缩放：拖动事件只记坐标，真正改窗口位置每帧只做一次（防止高回报率鼠标把
@@ -190,22 +190,37 @@ public final class MainView extends StackPane implements Ui.OverlayHost {
         applyUiOpacity();
     }
 
-    /** 圆角同时作用在底板、柔光裁剪上；最大化时临时归零。 */
+    /**
+     * 底板样式：圆角 + 白色玻璃渐变。
+     * <p>渐变的透明度跟着「界面不透明度」走——100% 时 alpha 全为 1，整窗真的不透明；
+     * 往下调才会透出后面的桌面（以前只改节点 opacity，100% 也仍有 20% 透光）。</p>
+     */
     private void applyGlassRadius() {
         double radius = maximized ? 0 : uiRadius;
+        double alpha = Math.max(0.3, Math.min(1.0, uiOpacity));
         backdrop.setStyle("-fx-background-radius: " + round(radius) + "px;"
-                + "-fx-border-radius: " + round(radius) + "px;");
+                + "-fx-border-radius: " + round(radius) + "px;"
+                + "-fx-background-color: linear-gradient(to bottom right, "
+                + rgba(255, 255, 255, alpha) + " 0%, "
+                + rgba(250, 251, 255, alpha) + " 46%, "
+                + rgba(243, 247, 253, alpha) + " 100%);");
         setArc(blobClip, radius * 2);
+    }
+
+    private static String rgba(int r, int g, int b, double alpha) {
+        return "rgba(" + r + ", " + g + ", " + b + ", "
+                + String.format(java.util.Locale.ROOT, "%.3f", Math.max(0, Math.min(1, alpha))) + ")";
     }
 
     private static String round(double value) {
         return String.format(java.util.Locale.ROOT, "%.0f", value);
     }
 
-    /** 不透明度同时作用在底板与内容层（底板独立后，只调 glass 会露出不透明白底）。 */
+    /** 内容层永远不透明（透明度已经交给底板渐变处理，否则界面文字也会跟着变淡）。 */
     private void applyUiOpacity() {
-        glass.setOpacity(uiOpacity);
-        backdrop.setOpacity(uiOpacity);
+        glass.setOpacity(1);
+        backdrop.setOpacity(1);
+        applyGlassRadius();
     }
 
     /** 设置页：界面整体不透明度（0.6 – 1.0）。 */

@@ -63,7 +63,7 @@ public final class AccountPage extends BorderPane {
         main.setPadding(new Insets(4, 16, 16, 6));
         VBox header = new VBox(0,
                 Ui.label("账户", "section-title"),
-                Ui.label("正版、离线、皮肤站都能用；换账户随时在这里切", "section-sub"));
+                Ui.label("应官方要求，非正版登录皆需购买过MC的正版账号才能使用", "section-sub"));
 
         accountBox.getStyleClass().addAll("card", "card-pad");
         list.getChildren().addAll(microsoftCard(), offlineCard(), skinCard(), accountBox, status);
@@ -84,9 +84,6 @@ public final class AccountPage extends BorderPane {
 
     private Node microsoftCard() {
         Label title = Ui.label("正版登录", "account-card-title");
-        Label hint = Ui.label("拿一个设备验证码，在浏览器里输入即可；启动器会自己等到授权完成。",
-                "settings-hint");
-        hint.setWrapText(true);
 
         Label code = Ui.label("", "ms-code");
         Label link = Ui.label("", "dialog-hint");
@@ -129,7 +126,7 @@ public final class AccountPage extends BorderPane {
         });
         buttons.add(start);
 
-        VBox box = new VBox(9, title, hint, start, codeBox);
+        VBox box = new VBox(9, title, start, codeBox);
         box.getStyleClass().add("card-pad");
         return goldCard(box);
     }
@@ -146,6 +143,9 @@ public final class AccountPage extends BorderPane {
         shine.setMouseTransparent(true);
         shine.setPrefWidth(150);
         shine.setMaxWidth(150);
+        // 斜切 + 纵向拉长：光带斜着扫过卡片，而不是竖直一条
+        shine.setRotate(-22);
+        shine.setScaleY(1.9);
 
         // 光带放在单独的图层里裁圆角：只裁光带，不裁卡片本身的阴影
         StackPane shineLayer = new StackPane(shine);
@@ -191,7 +191,7 @@ public final class AccountPage extends BorderPane {
     private void showPremiumRequired() {
         Label title = Ui.label("先用正版账号登录一次", "dialog-title", "danger-title");
         Label warn = Ui.label("按 Mojang 的规则，离线登录和皮肤站登录只提供给确实拥有《我的世界》的玩家。\n"
-                + "请先在「正版登录」那张卡里用微软账号登录一次（免费，只是验证你买过游戏），"
+                + "请先在「正版登录」那张卡里用微软账号登录一次，"
                 + "之后离线 / 皮肤站就能随便用。", "dialog-hint");
         warn.setWrapText(true);
         warn.setMaxWidth(360);
@@ -219,9 +219,6 @@ public final class AccountPage extends BorderPane {
 
     private Node offlineCard() {
         Label title = Ui.label("离线登录", "account-card-title");
-        Label hint = Ui.label("不联网、不需要密码，只在本机按名字算出 UUID"
-                + "（需要先用正版账号登录过一次）。", "settings-hint");
-        hint.setWrapText(true);
 
         Account selected = AccountStore.get().selected();
         String preset = selected != null && selected.kind == Account.Kind.OFFLINE ? selected.name : "Steve";
@@ -268,7 +265,7 @@ public final class AccountPage extends BorderPane {
         name.setOnAction(e -> go.fire());
         buttons.add(go);
 
-        VBox box = new VBox(9, title, hint, name, repay, go);
+        VBox box = new VBox(9, title, name, repay, go);
         box.getStyleClass().addAll("card", "card-pad");
         return box;
     }
@@ -283,9 +280,6 @@ public final class AccountPage extends BorderPane {
 
     private Node skinCard() {
         Label title = Ui.label("其他登录 · 皮肤站", "account-card-title");
-        Label hint = Ui.label("用 littleskin.cn 的账号登录，会读这个角色的皮肤当头像"
-                + "（同样需要先用正版账号登录过一次）。", "settings-hint");
-        hint.setWrapText(true);
 
         TextField email = new TextField();
         email.getStyleClass().add("dialog-field");
@@ -322,7 +316,7 @@ public final class AccountPage extends BorderPane {
                         () -> openUrl("https://littleskin.cn/auth/register")));
         row.setAlignment(Pos.CENTER_LEFT);
 
-        VBox box = new VBox(9, title, hint, email, password, row, go);
+        VBox box = new VBox(9, title, email, password, row, go);
         box.getStyleClass().addAll("card", "card-pad");
         return box;
     }

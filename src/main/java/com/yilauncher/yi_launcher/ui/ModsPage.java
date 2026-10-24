@@ -714,10 +714,7 @@ public final class ModsPage extends BorderPane {
         card.setPadding(new Insets(18, 20, 16, 20));
         card.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        VBox titles = new VBox(2,
-                Ui.label("查看详情 · " + title, "dialog-title"),
-                Ui.label(picked.size() > 1 ? "以第一个选中的模组为准" : "选一个网站，会自动搜这个模组",
-                        "dialog-hint"));
+        VBox titles = new VBox(2, Ui.label("查看详情 · " + title, "dialog-title"));
         Button close = Ui.ghostButton("关闭", null, host::hide);
         HBox head = new HBox(10, titles, Ui.spacer(), close);
         head.setAlignment(Pos.CENTER_LEFT);
